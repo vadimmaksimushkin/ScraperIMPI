@@ -62,6 +62,9 @@ class PageIMPI:
         self.s_elements_per_page = "#mat-select-0"
         self.s_50_elements_option = "#mat-option-2"
         self.s_main_table: str = "#ExportTable"
+        self.ejemplares = "Ejemplares"
+        self.busqueda_en_fichas = "Búsqueda en fichas"
+        self.busqueda_especializada = "Búsqueda especializada"
 
     async def download_file(self, element: Locator) -> None:
         async with self.page.expect_download() as download_file:
@@ -78,24 +81,39 @@ class PageIMPI:
         for type in types:
             if type == "xlsx" or type == "xls":
                 e_download_archive_xlsx = self.page.locator(
-                    self.s_download_archive_xlsx)
+                    self.s_download_archive_xlsx).first
                 # e_download_archive_xlsx = self.page.locator("img").nth(4)
                 await self.download_file(e_download_archive_xlsx)
             if type == "pdf":
                 e_download_archive_pdf = self.page.locator(
-                    self.s_download_archive_pdf)
+                    self.s_download_archive_pdf).first
                 # e_download_archive_pdf = self.page.locator("img").nth(5)
                 await self.download_file(e_download_archive_pdf)
 
     async def click_50_element_per_page(self) -> None:
-        e_elements_per_page = self.page.locator(self.s_elements_per_page)
+        e_elements_per_page = self.page.locator(self.s_elements_per_page).first
         await e_elements_per_page.click(timeout=10_000.0)
-        e_50_elements_option = self.page.locator(self.s_50_elements_option)
+        e_50_elements_option = self.page.locator(self.s_50_elements_option).first
         await e_50_elements_option.click()
+
+    async def search_copies(self) -> None:
+        e_record_search = self.page.locator(
+            "a", has_text=self.ejemplares).first
+        await e_record_search.click(timeout=10_000.0)
+
+    async def search_record(self) -> None:
+        e_record_search = self.page.locator(
+            "a", has_text=self.busqueda_en_fichas).first
+        await e_record_search.click(timeout=10_000.0)
+
+    async def search_advanced(self) -> None:
+        e_record_search = self.page.locator(
+            "a", has_text=self.busqueda_especializada).first
+        await e_record_search.click(timeout=10_000.0)
 
     async def table_ops(self) -> None:
         s_main_table: str = "#ExportTable"
-        e_main_table = self.page.locator(s_main_table)
+        e_main_table = self.page.locator(s_main_table).first
 
         headers = await e_main_table.locator("thead th").all_inner_texts()
         rows = e_main_table.locator("tbody tr")
@@ -140,13 +158,18 @@ async def main() -> None:
             wait_until="networkidle"
         )
         page_impi = PageIMPI(page, "SIGA IMPI GACETAS")
-        await page_impi.download_archive("xlsx")
-        await page_impi.click_50_element_per_page()
-        await page_impi.table_ops()
-        await page.screenshot(
-            path="ScraperIMPI/debug_headless.png",
-            full_page=True
-        )
+        # await page_impi.search_copies()
+        # await page_impi.search_record()
+        await page_impi.search_advanced()
+
+
+        # await page_impi.download_archive("xlsx")
+        # await page_impi.click_50_element_per_page()
+        # await page_impi.table_ops()
+        # await page.screenshot(
+        #     path="debug_headless.png",
+        #     full_page=True
+        # )
         await page.pause()
 
 
