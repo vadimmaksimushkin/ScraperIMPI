@@ -1,3 +1,5 @@
+# FIXME: "Por el momento el sitio no se encuentra disponible, por favor
+# inténtelo más tarde." handling
 import asyncio
 import logging
 import sys
@@ -19,6 +21,8 @@ async def main() -> None:
     settings = Settings()
     async with browser_session(settings) as page:
         home_page = await HomePage.open(page, settings)
+        # await home_page.set_page_size_50()
+        await asyncio.sleep(2)
         await home_page.open_copies()
         await asyncio.sleep(2)
         await home_page.open_record_search()
@@ -26,7 +30,6 @@ async def main() -> None:
         await home_page.open_advanced_search()
         await asyncio.sleep(2)
         await home_page.open_init()
-        await home_page.set_page_size_50()
 
         # await home_page.download_archive("xlsx", "pdf")
 

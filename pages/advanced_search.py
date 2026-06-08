@@ -1,10 +1,7 @@
 import logging
-from pages.base import BasePage
-# from pathlib import Path
-# from playwright.async_api import Locator, Page
-# from config import Settings
+from pages.base import SigaPage
 log = logging.getLogger(__name__)
 
 
-class AdvancedSearchPage(BasePage):
+class AdvancedSearchPage(SigaPage):
     pass

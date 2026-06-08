@@ -1,10 +1,7 @@
 from playwright.async_api import Page
 from pathlib import Path
 from config import Settings
-from pages.base import BasePage
-from pages.copies import CopiesPage
-from pages.record_search import RecordSearchPage
-from pages.advanced_search import AdvancedSearchPage
+from pages.base import SigaPage
 
 
 S_XLSX_BUTTON = (
@@ -24,12 +21,7 @@ S_PAGE_SIZE_50_OPTION = "#mat-option-2"
 S_TABLE = "#ExportTable"
 
 
-class HomePage(BasePage):
-    INIT = "Inicio"
-    COPIES = "Ejemplares"
-    RECORD_SEARCH = "Búsqueda en fichas"
-    ADVANCED_SEARCH = "Búsqueda especializada"
-
+class HomePage(SigaPage):
     @classmethod
     async def open(cls, page: Page, settings: Settings) -> HomePage:
         """Navigate to the site root and return the landing page object."""
@@ -39,28 +31,6 @@ class HomePage(BasePage):
             wait_until="networkidle",
         )
         return cls(page, settings)
-
-    async def navigate(self, label: str) -> None:
-        # NOTE: if these are real <a href> links, get_by_role("link",
-        # name=label) is the more robust, accessibility-first locator.
-        link = self.page.locator("a", has_text=label).first
-        await link.click(timeout=self.settings.action_timeout_ms)
-
-    async def open_init(self) -> CopiesPage:
-        await self.navigate(self.INIT)
-        return CopiesPage(self.page, self.settings)
-
-    async def open_copies(self) -> CopiesPage:
-        await self.navigate(self.COPIES)
-        return CopiesPage(self.page, self.settings)
-
-    async def open_record_search(self) -> RecordSearchPage:
-        await self.navigate(self.RECORD_SEARCH)
-        return RecordSearchPage(self.page, self.settings)
-
-    async def open_advanced_search(self) -> AdvancedSearchPage:
-        await self.navigate(self.ADVANCED_SEARCH)
-        return AdvancedSearchPage(self.page, self.settings)
 
     async def set_page_size_50(self) -> None:
         """Open the rows-per-page dropdown and pick 50."""

@@ -20,3 +20,34 @@ class BasePage:
         await file.save_as(path)
         log.info(f"Saved {path}")
         return path
+
+
+class SigaPage(BasePage):
+    INIT = "Inicio"
+    COPIES = "Ejemplares"
+    RECORD_SEARCH = "Búsqueda en fichas"
+    ADVANCED_SEARCH = "Búsqueda especializada"
+
+    async def navigate(self, text: str) -> None:
+        link = self.page.locator("a", has_text=text).first
+        await link.click(timeout=self.settings.action_timeout_ms)
+
+    async def open_init(self):
+        from pages.home import HomePage # resolve circular import errors
+        await self.navigate(self.INIT)
+        return HomePage(self.page, self.settings)
+
+    async def open_copies(self):
+        from pages.copies import CopiesPage
+        await self.navigate(self.COPIES)
+        return CopiesPage(self.page, self.settings)
+
+    async def open_record_search(self):
+        from pages.record_search import RecordSearchPage
+        await self.navigate(self.RECORD_SEARCH)
+        return RecordSearchPage(self.page, self.settings)
+
+    async def open_advanced_search(self):
+        from pages.advanced_search import AdvancedSearchPage
+        await self.navigate(self.ADVANCED_SEARCH)
+        return AdvancedSearchPage(self.page, self.settings)
