@@ -1,3 +1,4 @@
 asyncio>=4.0.0
 seleniumbase>=4.49.7
 playwright>=1.60.0
+python-dotenv>=1.0.0

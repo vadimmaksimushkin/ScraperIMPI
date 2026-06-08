@@ -1,6 +1,8 @@
 .*/
+__*__
+!__init__.py
 downloaded_files/
 SIGA\ IMPI\ GACETAS/
+.env
 *.png
-diag.py
-probe.py
+!.env.example
