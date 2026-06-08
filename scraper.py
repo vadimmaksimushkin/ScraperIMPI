@@ -1,3 +1,4 @@
+# FIXME: handle 'no publications for today'
 import asyncio
 import logging, sys
 from pathlib import Path
@@ -36,14 +37,28 @@ class PageIMPI:
     ) -> None:
         self.page: Page = page
         self.download_path = Path(download_path)
-        # XPath: /html/body/div[2]/app-root/div/app-inicio/mat-drawer-container/mat-drawer-content/div/mat-card/div[1]/div[2]/section/img[2]
-        # Full XPath: /html/body/div[2]/app-root/div/app-inicio/mat-drawer-container/mat-drawer-content/div/mat-card/div[1]/div[2]/section/img[2]
-        # CSS: body > div.custom-container > app-root > div > app-inicio > mat-drawer-container > mat-drawer-content > div > mat-card > div.grid > div.col-12.md\:col-6.lg\:col-9.ng-tns-c703605562-0 > section > img:nth-child(2)
-        self.s_download_archive_pdf = r"body > div.custom-container > app-root > div > app-inicio > mat-drawer-container > mat-drawer-content > div > mat-card > div.grid > div.col-12.md\:col-6.lg\:col-9.ng-tns-c703605562-0 > section > img:nth-child(2)"
-        # XPath: /html/body/div[2]/app-root/div/app-inicio/mat-drawer-container/mat-drawer-content/div/mat-card/div[1]/div[2]/section/img[1]
-        # Full XPath: /html/body/div[2]/app-root/div/app-inicio/mat-drawer-container/mat-drawer-content/div/mat-card/div[1]/div[2]/section/img[1]
-        # CSS: body > div.custom-container > app-root > div > app-inicio > mat-drawer-container > mat-drawer-content > div > mat-card > div.grid > div.col-12.md\:col-6.lg\:col-9.ng-tns-c703605562-0 > section > img:nth-child(1)
-        self.s_download_archive_xlsx = r"body > div.custom-container > app-root > div > app-inicio > mat-drawer-container > mat-drawer-content > div > mat-card > div.grid > div.col-12.md\:col-6.lg\:col-9.ng-tns-c703605562-0 > section > img:nth-child(1)"
+        # XPath: /html/body/div[2]/app-root/div/app-inicio/mat-drawer-container
+        # /mat-drawer-content/div/mat-card/div[1]/div[2]/section/img[2]
+        # CSS: body > div.custom-container > app-root > div > app-inicio >
+        # mat-drawer-container > mat-drawer-content > div > mat-card >
+        # div.grid > div.col-12.md\:col-6.lg\:col-9.ng-tns-c703605562-0 >
+        # section > img:nth-child(2)
+        self.s_download_archive_pdf = r"body > div.custom-container > " \
+            r"app-root > div > app-inicio > mat-drawer-container > " \
+            r"mat-drawer-content > div > mat-card > div.grid > " \
+            r"div.col-12.md\:col-6.lg\:col-9.ng-tns-c703605562-0 > " \
+            r"section > img:nth-child(2)"
+        # XPath: /html/body/div[2]/app-root/div/app-inicio/mat-drawer-container
+        # /mat-drawer-content/div/mat-card/div[1]/div[2]/section/img[1]
+        # CSS: body > div.custom-container > app-root > div > app-inicio >
+        # mat-drawer-container > mat-drawer-content > div > mat-card >
+        # div.grid > div.col-12.md\:col-6.lg\:col-9.ng-tns-c703605562-0 >
+        # section > img:nth-child(1)
+        self.s_download_archive_xlsx = r"body > div.custom-container > " \
+            r"app-root > div > app-inicio > mat-drawer-container > " \
+            r"mat-drawer-content > div > mat-card > div.grid > " \
+            r"div.col-12.md\:col-6.lg\:col-9.ng-tns-c703605562-0 > " \
+            r"section > img:nth-child(1)"
         self.s_elements_per_page = "#mat-select-0"
         self.s_50_elements_option = "#mat-option-2"
         self.s_main_table: str = "#ExportTable"
@@ -62,11 +77,13 @@ class PageIMPI:
     ) -> None:
         for type in types:
             if type == "xlsx" or type == "xls":
-                e_download_archive_xlsx = self.page.locator(self.s_download_archive_xlsx)
+                e_download_archive_xlsx = self.page.locator(
+                    self.s_download_archive_xlsx)
                 # e_download_archive_xlsx = self.page.locator("img").nth(4)
                 await self.download_file(e_download_archive_xlsx)
             if type == "pdf":
-                e_download_archive_pdf = self.page.locator(self.s_download_archive_pdf)
+                e_download_archive_pdf = self.page.locator(
+                    self.s_download_archive_pdf)
                 # e_download_archive_pdf = self.page.locator("img").nth(5)
                 await self.download_file(e_download_archive_pdf)
 
@@ -107,7 +124,7 @@ async def main() -> None:
     async with async_playwright() as p:
         chromium_path = p.chromium.executable_path
         log.info(f"Launching chromium: {chromium_path}")
-        driver = await cdp_driver.start_async( # pyright: ignore[reportUnknownMemberType]
+        driver = await cdp_driver.start_async( # pyright: ignore
             lang=BROWSER_LANG,
             tzone=BROWSER_TIMEZONE,
             browser_args=LAUNCH_ARGS,
@@ -124,10 +141,13 @@ async def main() -> None:
         )
         page_impi = PageIMPI(page, "SIGA IMPI GACETAS")
         await page_impi.download_archive("xlsx")
-        # await page_impi.click_50_element_per_page()
-        # await page_impi.table_ops()
-        # await page.screenshot(path="ScraperIMPI/debug_headless.png", full_page=True)
-        # await page.pause()
+        await page_impi.click_50_element_per_page()
+        await page_impi.table_ops()
+        await page.screenshot(
+            path="ScraperIMPI/debug_headless.png",
+            full_page=True
+        )
+        await page.pause()
 
 
 if __name__ == "__main__":
