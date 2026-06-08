@@ -9,6 +9,7 @@ class Settings:
     browser_timezone: str = "America/Mexico_City"
     page_timeout_ms: float = 25_000.0
     action_timeout_ms: float = 10_000.0
+    download_timeout_ms: float = 120_000.0
     download_path: Path = Path("SIGA IMPI GACETAS")
     launch_args: tuple[str, ...] = (
         "--use-gl=angle",

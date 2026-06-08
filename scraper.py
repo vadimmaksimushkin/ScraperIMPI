@@ -1,11 +1,10 @@
-# FIXME: "Por el momento el sitio no se encuentra disponible, por favor
-# inténtelo más tarde." handling
 import asyncio
 import logging
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from config import Settings
+from errors import SiteUnavailableError
 from session import browser_session
 from pages.home import HomePage
 
@@ -17,23 +16,32 @@ logging.basicConfig(
 )
 
 
+async def fetch_daily_update(settings: Settings) -> list[Path]:
+    async with browser_session(settings) as page:
+        home = await HomePage.open(page, settings)
+        paths = await home.download_archive("xlsx")
+        log.info(f"Downloaded {len(paths)} file(s): {paths}")
+        return paths
+
+
+async def search_records(settings: Settings) -> None:
+    async with browser_session(settings) as page:
+        home = await HomePage.open(page, settings)
+        await home.open_copies()
+        await home.open_record_search()
+        await home.open_advanced_search()
+        await home.open_init()
+        await page.pause()
+
+
 async def main() -> None:
     settings = Settings()
-    async with browser_session(settings) as page:
-        home_page = await HomePage.open(page, settings)
-        # await home_page.set_page_size_50()
-        await asyncio.sleep(2)
-        await home_page.open_copies()
-        await asyncio.sleep(2)
-        await home_page.open_record_search()
-        await asyncio.sleep(2)
-        await home_page.open_advanced_search()
-        await asyncio.sleep(2)
-        await home_page.open_init()
-
-        # await home_page.download_archive("xlsx", "pdf")
-
-        await page.pause()
+    try:
+        # await fetch_daily_update(settings)
+        await search_records(settings)
+    except SiteUnavailableError as exc:
+        log.warning(f"SIGA unavailable, please try again later: {exc}")
+        return None
 
 
 if __name__ == "__main__":

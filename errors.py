@@ -1,0 +1,2 @@
+class SiteUnavailableError(RuntimeError):
+    pass

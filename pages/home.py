@@ -30,7 +30,9 @@ class HomePage(SigaPage):
             timeout=settings.page_timeout_ms,
             wait_until="networkidle",
         )
-        return cls(page, settings)
+        home = cls(page, settings)
+        await home.raise_if_unavailable()
+        return home
 
     async def set_page_size_50(self) -> None:
         """Open the rows-per-page dropdown and pick 50."""
