@@ -3,6 +3,9 @@ __*__
 !__init__.py
 downloaded_files/
 SIGA\ IMPI\ GACETAS/
+SigaDirectApi/Results/
+SigaDirectApi/OtherScripts/
+debug/
 .env
 *.png
 !.env.example

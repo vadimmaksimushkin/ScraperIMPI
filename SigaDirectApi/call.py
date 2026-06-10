@@ -19,7 +19,63 @@ logging.basicConfig(
 
 BASE = "https://siga.impi.gob.mx:5007"
 TOKEN_URL = f"{BASE}/antiforgery/token"
-SEARCH_URL = f"{BASE}/api/BusquedaEstructurada/GetSearchEstructurada"
+# image GET
+FICHA_ID_TEST = "bktjVzNHYnBxbjhhajJmZTBnVEVTQT09"
+IMAGE_URL = f"https://siga.impi.gob.mx:5007/api/BusquedaFicha/GetImage?idFicha={FICHA_ID_TEST}"
+
+# copies search
+SEARCH_URL_COPIES = "https://siga.impi.gob.mx:5007/api/DescargaEjemplares/GetEjemplares"
+PAYLOAD_COPIES_DEFAULT: dict[str, Any] = {
+    "idArea": "2",
+    "idGaceta": "35",
+    "fechaDesde": None,
+    "fechaHasta": None,
+    "reCaptchaToken": "",
+}
+# records search
+SEARCH_URL_RECORDS = "https://siga.impi.gob.mx:5007/api/BusquedaFicha/GetFichas"
+PAYLOAD_RECORDS_DEFAULT: dict[str, Any] = {
+    "busqueda": "3618676",
+    "idArea": "",
+    "idGaceta": [],
+    "fechaDesde": "",
+    "fechaHasta": "",
+    "reCaptchaToken": "",
+}
+# advanced search
+SEARCH_URL_ADVANCED = f"{BASE}/api/BusquedaEstructurada/GetSearchEstructurada"
+PAYLOAD_ADVANCED_DEFAULT: dict[str, Any] = {
+#     "idArea": "2",
+#     "FechaDesde": "01-01-2025", # dd-mm-yyyy
+#     "FechaHasta": "10-06-2026",
+#     "idGaceta": [35],
+#     "idSeccion": [100188],
+#     "datos": [
+#         {
+#             "operador": None,
+#             "columna": "Clase",
+#             "valor": "42",
+#             "fecha": None
+#         },
+#     ],
+#     "reCaptchaToken": "", # required field, accepts empty string
+# }
+# PAYLOAD_ADVANCED_v2: dict[str, Any] = {
+    "idArea": "2",
+    "FechaDesde": None,
+    "FechaHasta": None,
+    "idGaceta": [],
+    "idSeccion": [],
+    "datos": [
+        {
+            "operador": None,
+            "columna": "Clase",
+            "valor": "42",
+            "fecha": None
+        },
+    ],
+    "reCaptchaToken": "",
+}
 ORIGIN = "https://siga.impi.gob.mx"
 REFERER = f"{ORIGIN}/"
 UA = (
@@ -33,22 +89,6 @@ HEADERS_DEFAULT = {
     "Origin": ORIGIN,
     "Referer": REFERER,
     "User-Agent": UA,
-}
-DEFAULT_PAYLOAD: dict[str, Any] = {
-    "idArea": "2",
-    "FechaDesde": "01-01-2025", # dd-mm-yyyy
-    "FechaHasta": "10-06-2026",
-    "idGaceta": [35],
-    "idSeccion": [100188],
-    "datos": [
-        {
-        "operador": None,
-        "columna": "Clase",
-        "valor": "42",
-        "fecha": None
-        },
-    ],
-    "reCaptchaToken": "", # required field, accepts empty string
 }
 RESULTS_DIR = Path(__file__).parent / "Results"
 
@@ -93,7 +133,7 @@ async def fetch_token_pair(session: aiohttp.ClientSession) -> TokenPair:
 async def search(
     session: aiohttp.ClientSession,
     token: TokenPair,
-    payload: dict[str, Any] | None = DEFAULT_PAYLOAD,
+    payload: dict[str, Any] | None = PAYLOAD_ADVANCED_DEFAULT,
 ) -> tuple[int, Any]:
     """POST a structured search using a fresh token pair. Returns (status, parsed_json_or_text)."""
     headers = HEADERS_DEFAULT
@@ -101,7 +141,7 @@ async def search(
     headers["x-xsrf-token"] = token.request_token
 
     async with session.post(
-        SEARCH_URL,
+        SEARCH_URL_ADVANCED,
         data=orjson.dumps(payload),
         headers=headers,
     ) as resp:
@@ -118,7 +158,7 @@ async def main() -> None:
         headers = HEADERS_DEFAULT
         headers["Content-Type"] = "application/json"
         headers["x-xsrf-token"] = token.request_token
-        status, body = await search(session, token, DEFAULT_PAYLOAD)
+        status, body = await search(session, token, PAYLOAD_ADVANCED_DEFAULT)
         log.info(f"{status} | len: {len(body)} | records: {body.keys()}")
         log.info(f"successed: {body.get("successed", "field is empty")}")
         log.info(f"message: {body.get("message", "field is empty")}")
