@@ -5,7 +5,7 @@ user-agent cleanup. Exposes a single async context manager that yields a
 ready-to-drive `Page`.
 """
 import logging
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 from playwright.async_api import Page, async_playwright
@@ -28,7 +28,7 @@ async def clean_ua(page: Page) -> None:
 
 
 @asynccontextmanager
-async def browser_session(settings: Settings) -> AsyncIterator[Page]:
+async def browser_session(settings: Settings) -> AsyncGenerator[Page]:
     async with async_playwright() as p:
         log.info("Launching chromium: %s", p.chromium.executable_path)
         driver = await cdp_driver.start_async(  # pyright: ignore
