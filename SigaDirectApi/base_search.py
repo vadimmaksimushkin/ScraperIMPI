@@ -119,26 +119,25 @@ async def request_with_token(
         return res.status, text
 
 
-async def test() -> None:
-    payload_by_gaceta: dict[str, Any] = {
-        "idArea":"2",
-        "idGaceta":"35",
-        "fechaDesde":None,
-        "fechaHasta":None,
-        "reCaptchaToken":"",
-    }
-    url_by_gaceta = f"{BASE}/api/DescargaEjemplares/GetEjemplares"
-
-
-    async with aiohttp.ClientSession() as session:
-        status, res = await request_with_token(
-            session,
-            RequestMethods.POST,
-            url_by_gaceta,
-            payload_by_gaceta,
-        )
-        log.info(status)
-        log.info(res)
-
 if __name__ == "__main__":
+    async def test() -> None:
+        payload_by_gaceta: dict[str, Any] = {
+            "idArea":"2",
+            "idGaceta":"35",
+            "fechaDesde":None,
+            "fechaHasta":None,
+            "reCaptchaToken":"",
+        }
+        url_by_gaceta = f"{BASE}/api/DescargaEjemplares/GetEjemplares"
+
+
+        async with aiohttp.ClientSession() as session:
+            status, res = await request_with_token(
+                session,
+                RequestMethods.POST,
+                url_by_gaceta,
+                payload_by_gaceta,
+            )
+            log.info(status)
+            log.info(res)
     asyncio.run(test())
