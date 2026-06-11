@@ -1,135 +1,212 @@
-"""
-Advanced (structured) search — POST /api/BusquedaEstructurada/GetSearchEstructurada.
-
-Filter by área / gaceta / sección and a list of column predicates (`datos`) over a
-date window. The 15000-record cap endpoint (no pagination/sort param).
-
-Inconsistencies vs the other two searches (SIGA_API_REFERENCE.md §1):
-  * date keys are CAPITALISED `FechaDesde`/`FechaHasta` and the format is
-    `DD-MM-YYYY` (empty -> null).
-  * `idGaceta` and `idSeccion` are ARRAYS OF INT (`[35]`, `[100188]`).
-  * `datos[]` = {operador, columna, valor, fecha}; a date column puts its value in
-    `fecha` (DD/MM/YYYY) instead of `valor`.
-
-Response envelope: {successed, message, errors, data:[{fichaId, areaId, ejemplar,
-gaceta, seccion, fechaPuestaCirculacion("DD/MM/YYYY"), imagen, countImagen,
-vinculos, datos:[{descripcion, datoTxt, orden}]}]}.
-"""
-from __future__ import annotations
-
 import asyncio
-from typing import Any
-
 import aiohttp
-
+from typing import Any
+import logging
+import sys
+from enum import Enum
+from dataclasses import dataclass
+from datetime import date
 from base_search import (
     BASE,
-    SearchSpec,
-    TokenPair,
-    fetch_token_pair,
-    post_json,
+    RequestMethods,
+    request_with_token,
 )
-import SigaDirectApi.OtherScripts.choices as choices
+from copies_search import Area, Gaceta
 
-# Static choices (mirrors the form dropdowns). Secciones/Columnas are
-# per-gaceta/per-seccion — only the Marcas baseline is bundled; fetch others live.
-AREAS = choices.AREAS
-GACETAS = choices.GACETAS
-SECCIONES_BY_GACETA = choices.SECCIONES_BY_GACETA
-COLUMNAS_MARCAS = choices.COLUMNAS_MARCAS
-OPERADORES = choices.OPERADORES
-
-SPEC = SearchSpec(
-    name="advanced",
-    url=f"{BASE}/api/BusquedaEstructurada/GetSearchEstructurada",
-    payload_desde_key="FechaDesde",         # capital F
-    payload_hasta_key="FechaHasta",
-    payload_date_fmt="%d-%m-%Y",            # DD-MM-YYYY
-    list_key="data",
-    record_id_key="fichaId",
-    record_date_key="fechaPuestaCirculacion",
-    record_date_fmt="%d/%m/%Y",
+log = logging.getLogger("siga.search")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(message)s",
+    stream=sys.stderr,
 )
 
-# Validated baseline (2026-06-09): Marcas · gaceta 35 · sección 100188 · Clase 42.
-PAYLOAD_DEFAULT: dict[str, Any] = {
+URL=f"{BASE}/api/BusquedaEstructurada/GetSearchEstructurada"
+
+test_payload_v1: dict[str, Any] = {
     "idArea": "2",
-    "FechaDesde": None,        # DD-MM-YYYY or null
-    "FechaHasta": None,
-    "idGaceta": [],            # array of int
-    "idSeccion": [],           # array of int
+    "FechaDesde": "01-01-2026",
+    "FechaHasta": "11-06-2026",
+    "idGaceta": [37],
+    "idSeccion": [],
     "datos": [
-        {"operador": None, "columna": "Clase", "valor": "42", "fecha": None},
+        {
+            "operador": "",
+            "columna": "Clase",
+            "valor": "42",
+            "fecha":""
+        },
+        {
+            "operador": "OR",
+            "columna": "Clase (s)",
+            "valor": "40",
+            "fecha": ""
+        }
     ],
     "reCaptchaToken": "",
 }
+test_payload_v2: dict[str, Any] = {
+    "idArea":"2",
+    "FechaDesde":"01-01-2026",
+    "FechaHasta":"11-06-2026",
+    "idGaceta":[37,1],
+    "idSeccion":[406],
+    "datos": [
+        {
+            "operador":"",
+            "columna":"Clase",
+            "valor":"42",
+            "fecha":"",
+        },
+    ],
+    "reCaptchaToken":"",
+}
+
+test_payload_v3: dict[str, Any] = {
+    "idArea":"2",
+    "FechaDesde":"01-01-2026",
+    "FechaHasta":"11-06-2026",
+    "idGaceta":[37],
+    "idSeccion":[406],
+    "datos": [
+        {
+            "operador":None,
+            "columna":"Autorización",
+            "valor":"termino",
+            "fecha":None,
+        },
+        {
+            "operador":"OR",
+            "columna":"Usuario Autorizado",
+            "valor":"termino",
+            "fecha":""
+        },
+    ],
+    "reCaptchaToken":"",
+}
 
 
-def termino(
-    columna: str,
-    valor: str,
-    *,
-    operador: str | None = None,
-    es_fecha: bool = False,
-) -> dict[str, Any]:
-    """
-    One `datos[]` predicate. A date column (`es_fecha`/`Fecha...`) puts `valor` in
-    `fecha` (DD/MM/YYYY); everything else uses `valor`. `operador` only matters with
-    >=2 terms (one of OPERADORES).
-    """
-    is_date = es_fecha or columna.startswith("Fecha")
-    return {
-        "operador": operador,
-        "columna": columna,
-        "valor": None if is_date else valor,
-        "fecha": valor if is_date else None,
-    }
+class Seccion(Enum):
+    def __init__(self, id_seccion: int, gaceta: Gaceta):
+        self.id_seccion = id_seccion
+        self.gaceta = gaceta
+
+    SOLICITUDES_DE_MARCAS                   = (100188, Gaceta.SOLICITUDES_DE_MARCAS_AVISOS_Y_NOMBRES_COMERCIALES_PRESENTADAS_ANTE_EL_INSTITUTO)
+    SOLICITUDES_DE_AVISOS_COMERCIALES       = (100190, Gaceta.SOLICITUDES_DE_MARCAS_AVISOS_Y_NOMBRES_COMERCIALES_PRESENTADAS_ANTE_EL_INSTITUTO)
+    SOLICITUDES_DE_NOMBRES_COMERCIALES      = (100192, Gaceta.SOLICITUDES_DE_MARCAS_AVISOS_Y_NOMBRES_COMERCIALES_PRESENTADAS_ANTE_EL_INSTITUTO)
+
+
+class Operador(Enum):
+    AND = "AND"
+    OR = "OR"
+    NOT = "NOT"
+    EMPTY = ""
+
+
+class Columna(Enum):
+    CLASE = "Clase"
+    CLASE_S = "Clase (s)"
+
+
+@dataclass
+class Dato:
+    operador: Operador
+    columna: Columna
+    valor: str
+    fecha: str = ""
 
 
 def build_payload(
-    id_area: str,
-    datos: list[dict[str, Any]],
-    *,
-    fecha_desde: str | None = None,   # DD-MM-YYYY
-    fecha_hasta: str | None = None,
-    id_gaceta: list[int] | None = None,
-    id_seccion: list[int] | None = None,
+    area: Area,
+    gacetas: list[Gaceta],
+    secciones: list[Seccion],
+    datos: list[Dato],
+    fecha_desde: date | None = None,
+    fecha_hasta: date | None = None,
     recaptcha: str = "",
 ) -> dict[str, Any]:
-    """Shape a GetSearchEstructurada payload (capital Fecha keys, array ids)."""
-    return {
-        "idArea": str(id_area),
-        "FechaDesde": fecha_desde,
-        "FechaHasta": fecha_hasta,
-        "idGaceta": id_gaceta or [],
-        "idSeccion": id_seccion or [],
-        "datos": datos,
+    if bool(fecha_desde) != bool(fecha_hasta): #XOR(fecha_desde, fecha_hasta)
+        raise ValueError("Both dates must be present or absent")
+    if fecha_desde is not None and fecha_hasta is not None:
+        if fecha_hasta < fecha_desde:
+            raise ValueError("fechas_desde must be less or equeal to fecha_hasta")
+
+    payload: dict[str, Any] = {
+        "idArea": str(area.value) if area else "",
+        "idGaceta": [gaceta.id_gaceta for gaceta in gacetas] if gacetas else [],
+        "idSeccion": [seccion.id_seccion for seccion in secciones] if secciones else [],
+        "datos": [dato.__dict__ for dato in datos], # FIXME: check that dataclass returns dict
+        "FechaDesde": fecha_desde.strftime("%d-%m-%Y") if fecha_desde else "",
+        "FechaHasta": fecha_hasta.strftime("%d-%m-%Y") if fecha_hasta else "",
         "reCaptchaToken": recaptcha,
     }
-
+    return payload
 
 async def search(
     session: aiohttp.ClientSession,
-    token: TokenPair,
-    payload: dict[str, Any] | None = None,
+    area: Area,
+    gacetas: list[Gaceta],
+    secciones: list[Seccion],
+    datos: list[Dato],
+    fecha_desde: date | None = None,
+    fecha_hasta: date | None = None,
+    recaptcha: str = "",
 ) -> tuple[int, Any]:
-    """Single structured-search call (one page, capped at 15000)."""
-    return await post_json(session, token, SPEC.url, payload or PAYLOAD_DEFAULT)
-
-
-async def main() -> None:
-    async with aiohttp.ClientSession() as session:
-        token = await fetch_token_pair(session)
-        payload = build_payload(
-            "2",
-            [termino("Clase", "42")],
-            fecha_desde="01-05-2026", fecha_hasta="09-06-2026",
-            id_gaceta=[35], id_seccion=[100188],
-        )
-        status, body = await search(session, token, payload)
-        n = len(body.get("data", [])) if isinstance(body, dict) else "-"
-        print(f"[advanced] GetSearchEstructurada -> status={status} records={n}")
+    payload = build_payload(
+        area=area,
+        gacetas=gacetas,
+        secciones=secciones,
+        datos=datos,
+        fecha_desde=fecha_desde,
+        fecha_hasta=fecha_hasta,
+        recaptcha=recaptcha,
+    )
+    status, res = await request_with_token(
+        session=session,
+        method=RequestMethods.POST,
+        url=URL,
+        payload=payload,
+    )
+    return status, res
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    async def test() -> None:
+        area = Area.MARCAS
+        gacetas = [
+            Gaceta.SOLICITUDES_DE_MARCAS_AVISOS_Y_NOMBRES_COMERCIALES_PRESENTADAS_ANTE_EL_INSTITUTO,
+            Gaceta.SOLICITUDES_DE_MARCAS_AVISOS_Y_NOMBRES_COMERCIALES_PRESENTADAS_ANTE_EL_INSTITUTO,
+        ]
+        secciones = [
+            Seccion.SOLICITUDES_DE_AVISOS_COMERCIALES,
+            Seccion.SOLICITUDES_DE_MARCAS,
+            Seccion.SOLICITUDES_DE_NOMBRES_COMERCIALES,
+        ]
+        datos = [
+            Dato(
+                operador=Operador.EMPTY,
+                columna=Columna.CLASE,
+                valor="42",
+            ),
+            Dato(
+                operador=Operador.OR,
+                columna=Columna.CLASE_S,
+                valor="40"
+            ),
+        ]
+        fecha_desde = date(2026, 1, 1)
+        fecha_hasta = date(2026, 6, 11)
+
+        async with aiohttp.ClientSession() as session:
+            status, res = await search(
+                session=session,
+                area=area,
+                gacetas=gacetas,
+                secciones=secciones,
+                datos=datos,
+                fecha_desde=fecha_desde,
+                fecha_hasta=fecha_hasta,
+            )
+            log.info(status)
+            log.info(len(res.get("data", [])))
+
+    asyncio.run(test())
