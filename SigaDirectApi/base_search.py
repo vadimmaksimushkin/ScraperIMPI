@@ -96,7 +96,6 @@ async def request_with_token(
     payload: dict[str, Any] | None,
 ) -> tuple[int, Any]:
     token = await fetch_token_pair(session)
-    log.info(token)
 
     headers = {
         **HEADERS_DEFAULT,
@@ -112,7 +111,6 @@ async def request_with_token(
     )
 
     text = await res.text()
-    log.info(text)
     try:
         return res.status, orjson.loads(text)
     except orjson.JSONDecodeError:
