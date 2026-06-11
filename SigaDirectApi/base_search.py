@@ -1,10 +1,10 @@
-# import asyncio
+import asyncio
 import logging
 import sys
 from dataclasses import dataclass
-# from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
+from enum import Enum, auto
 
 import aiohttp
 import orjson
@@ -39,21 +39,37 @@ DEFAULT_YEARS_BACK = 20     # how far the pinned lower bound reaches
 DEFAULT_DELAY_SECONDS = 2.0  # politeness delay between pages (per-IP rate limiting)
 
 
+class RequestMethods(Enum):
+    GET = auto()
+    HEAD = auto()
+    POST = auto()
+    PUT = auto()
+    DELETE = auto()
+    OPTIONS = auto()
+    PATCH = auto()
+
+
 @dataclass
 class TokenPair:
-    """A matched antiforgery cookie + request token from one handshake."""
+    """A matched antiforgery cookie + request token from one handshake"""
 
     cookie_name: str
     cookie_value: str
-    request_token: str  # value of XSRF-TOKEN cookie -> sent as x-xsrf-token header
+    request_token: str  # value of XSRF-TOKEN cookie, sent as x-xsrf-token header
 
     @property
     def cookies(self) -> dict[str, str]:
-        return {self.cookie_name: self.cookie_value, XSRF_COOKIE_NAME: self.request_token}
+        return {
+            self.cookie_name: self.cookie_value,
+            XSRF_COOKIE_NAME: self.request_token,
+        }
 
 
 async def fetch_token_pair(session: aiohttp.ClientSession) -> TokenPair:
-    """GET /antiforgery/token and extract the matched antiforgery cookie + request token."""
+    """
+    GET /antiforgery/token and extract the matched antiforgery cookie +
+    request token
+    """
     async with session.get(TOKEN_URL, headers=HEADERS_DEFAULT) as resp:
         await resp.read()
 
@@ -67,31 +83,62 @@ async def fetch_token_pair(session: aiohttp.ClientSession) -> TokenPair:
 
     if not antiforgery or not request_token:
         raise RuntimeError(
-            f"Antiforgery handshake failed: cookie={antiforgery!r} token={request_token!r}"
+            f"Antiforgery handshake failed: cookie={antiforgery!r}"
+            f" token={request_token!r}"
         )
     return TokenPair(antiforgery[0], antiforgery[1], request_token)
 
 
-async def post_json(
+async def request_with_token(
     session: aiohttp.ClientSession,
-    token: TokenPair,
+    method: RequestMethods,
     url: str,
-    payload: dict[str, Any],
+    payload: dict[str, Any] | None,
 ) -> tuple[int, Any]:
-    """Authenticated JSON POST to any SIGA endpoint. Returns (status, parsed_json_or_text)."""
+    token = await fetch_token_pair(session)
+    log.info(token)
+
     headers = {
         **HEADERS_DEFAULT,
         "Content-Type": "application/json",
         "x-xsrf-token": token.request_token,
     }
-    async with session.post(
-        url,
-        data=orjson.dumps(payload),
+    res = await session.request(
+        method=method.name,
+        url=url,
         headers=headers,
         cookies=token.cookies,
-    ) as resp:
-        text = await resp.text()
-        try:
-            return resp.status, orjson.loads(text)
-        except orjson.JSONDecodeError:
-            return resp.status, text
+        data=orjson.dumps(payload) if payload else None,
+    )
+
+    text = await res.text()
+    log.info(text)
+    try:
+        return res.status, orjson.loads(text)
+    except orjson.JSONDecodeError:
+        return res.status, text
+
+
+async def test() -> None:
+    payload_by_gaceta: dict[str, Any] = {
+        "idArea":"2",
+        "idGaceta":"35",
+        "fechaDesde":None,
+        "fechaHasta":None,
+        "reCaptchaToken":"",
+    }
+    url_by_gaceta = f"{BASE}/api/DescargaEjemplares/GetEjemplares"
+
+
+    async with aiohttp.ClientSession() as session:
+        status, res = await request_with_token(
+            session,
+            RequestMethods.POST,
+            url_by_gaceta,
+            payload_by_gaceta,
+        )
+        log.info(status)
+        log.info(res)
+
+if __name__ == "__main__":
+    asyncio.run(test())
