@@ -19,14 +19,6 @@ logging.basicConfig(
 )
 
 URL=f"{BASE}/api/BusquedaFicha/GetFichas"
-PAYLOAD_DEFAULT: dict[str, Any] = {
-    "busqueda":"3618676", # str(int)
-    "idArea":"",
-    "idGaceta":[],
-    "fechaDesde":"",
-    "fechaHasta":"",
-    "reCaptchaToken":"",
-}
 
 
 def build_payload(
