@@ -71,19 +71,25 @@ def build_url_payload(
     fecha_hasta: date | None = None,
     recaptcha: str = "",
 ) -> tuple[str, dict[str, Any]]:
-    request_endpoint: str = ""
-
-    payload: dict[str, Any] = {
-        "fechaDesde": fecha_desde.strftime("%Y-%m-%d") if fecha_desde else None,
-        "fechaHasta": fecha_hasta.strftime("%Y-%m-%d") if fecha_hasta else None,
-        "reCaptchaToken": recaptcha,
-    }
     if not gaceta and not fecha_desde and not fecha_hasta:
         message = (
             "Invalid arguments: area must be present, gaceta may be absent"
             " if fechas are present, fechas may be absent if gaceta is present"
         )
         raise ValueError(message)
+    if bool(fecha_desde) != bool(fecha_hasta): #XOR(fecha_desde, fecha_hasta)
+        raise ValueError("Both dates must be present or absent")
+    if fecha_desde is not None and fecha_hasta is not None:
+        if fecha_hasta < fecha_desde:
+            raise ValueError("fechas_desde must be less or equeal to fecha_hasta")
+
+    request_endpoint: str = ""
+    payload: dict[str, Any] = {
+        "fechaDesde": fecha_desde.strftime("%Y-%m-%d") if fecha_desde else None,
+        "fechaHasta": fecha_hasta.strftime("%Y-%m-%d") if fecha_hasta else None,
+        "reCaptchaToken": recaptcha,
+    }
+
     if gaceta:
         request_endpoint = URL_BY_GACETA
         payload["idArea"] = str(gaceta.area.value)
