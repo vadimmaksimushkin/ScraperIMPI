@@ -9,7 +9,7 @@ from base_search import (
     RequestMethods,
     request_with_token,
 )
-from constants import Area, Gaceta
+from constants import Area, Gaceta, RECAPTCHA_TOKEN_RE
 log = logging.getLogger("siga.search")
 logging.basicConfig(
     level=logging.INFO,
@@ -22,6 +22,46 @@ URL_BY_GACETA = f"{BASE}/api/DescargaEjemplares/GetEjemplares"
 URL_BY_FECHA = f"{BASE}/api/DescargaEjemplares/GetEjemplaresArrayByFecha"
 
 
+def input_validation( # NOSONAR
+    area: Area,
+    gaceta: Gaceta | None = None,
+    fecha_desde: date | None = None,
+    fecha_hasta: date | None = None,
+    recaptcha: str = "",
+) -> tuple[bool, str]:
+    # parameter types
+    if not isinstance(area, Area): # type: ignore
+        return False, "area must be an Area"
+    if gaceta is not None and not isinstance(gaceta, Gaceta): # type: ignore
+        return False, "gaceta must be a Gaceta"
+    if fecha_desde is not None and not isinstance(fecha_desde, date): # type: ignore
+        return False, "fecha_desde must be a date"
+    if fecha_hasta is not None and not isinstance(fecha_hasta, date): # type: ignore
+        return False, "fecha_hasta must be a date"
+    if not isinstance(recaptcha, str): # type: ignore
+        return False, "recaptcha must be the type str"
+    if recaptcha and not RECAPTCHA_TOKEN_RE.fullmatch(recaptcha):
+        return False, "recaptcha has an invalid format"
+
+    # need a gaceta or a date range to scope the download
+    if not gaceta and not fecha_desde and not fecha_hasta:
+        message = (
+            "either gaceta or a date range is required"
+            " (gaceta may be absent if fechas are present, and vice versa)"
+        )
+        return False, message
+
+    # date range: both present or both absent, ordered, and not in the future
+    if bool(fecha_desde) != bool(fecha_hasta): # XOR(fecha_desde, fecha_hasta)
+        return False, "Both dates must be present or absent"
+    if fecha_desde is not None and fecha_hasta is not None and fecha_hasta < fecha_desde:
+        return False, "fecha_desde must be <= fecha_hasta"
+    if fecha_hasta is not None and fecha_hasta > date.today():
+        return False, "dates must be <= current date"
+
+    return True, "OK"
+
+
 def build_url_payload(
     area: Area,
     gaceta: Gaceta | None = None,
@@ -29,17 +69,15 @@ def build_url_payload(
     fecha_hasta: date | None = None,
     recaptcha: str = "",
 ) -> tuple[str, dict[str, Any]]:
-    if not gaceta and not fecha_desde and not fecha_hasta:
-        message = (
-            "Invalid arguments: area must be present, gaceta may be absent"
-            " if fechas are present, fechas may be absent if gaceta is present"
-        )
+    ok, message = input_validation(
+        area=area,
+        gaceta=gaceta,
+        fecha_desde=fecha_desde,
+        fecha_hasta=fecha_hasta,
+        recaptcha=recaptcha,
+    )
+    if not ok:
         raise ValueError(message)
-    if bool(fecha_desde) != bool(fecha_hasta): #XOR(fecha_desde, fecha_hasta)
-        raise ValueError("Both dates must be present or absent")
-    if fecha_desde is not None and fecha_hasta is not None:
-        if fecha_hasta < fecha_desde:
-            raise ValueError("fechas_desde must be less or equeal to fecha_hasta")
 
     request_endpoint: str = ""
     payload: dict[str, Any] = {

@@ -18,6 +18,7 @@ from constants import (
     Dato,
     SECCION_COLUMNAS,
     GACETA_COLUMNAS,
+    RECAPTCHA_TOKEN_RE,
 )
 
 log = logging.getLogger("siga.search")
@@ -30,6 +31,10 @@ logging.basicConfig(
 URL=f"{BASE}/api/BusquedaEstructurada/GetSearchEstructurada"
 
 
+def is_list_of(lst: object, T: type) -> bool:
+    return isinstance(lst, list) and all(isinstance(item, T) for item in lst) # type: ignore
+
+
 def input_validation( # NOSONAR
     area: Area,
     gacetas: list[Gaceta] | None,
@@ -39,15 +44,31 @@ def input_validation( # NOSONAR
     fecha_hasta: date | None = None,
     recaptcha: str = "",
 ) -> tuple[bool, str]:
-    # date range: both present or both absent, and ordered
+    # parameter types
+    if not isinstance(area, Area): # type: ignore
+        return False, "area must be an Area"
+    if gacetas is not None and not is_list_of(gacetas, Gaceta):
+        return False, "gacetas must be a list of Gaceta"
+    if secciones is not None and not is_list_of(secciones, Seccion):
+        return False, "secciones must be a list of Seccion"
+    if not is_list_of(datos, Dato):
+        return False, "datos must be a list of Dato"
+    if fecha_desde is not None and not isinstance(fecha_desde, date): # type: ignore
+        return False, "fecha_desde must be a date"
+    if fecha_hasta is not None and not isinstance(fecha_hasta, date): # type: ignore
+        return False, "fecha_hasta must be a date"
+    if not isinstance(recaptcha, str): # type: ignore
+        return False, "recaptcha must be the type str"
+    if recaptcha and not RECAPTCHA_TOKEN_RE.fullmatch(recaptcha):
+        return False, "recaptcha has an invalid format"
+
+    # date range: both present or both absent, ordered, and not in the future
     if bool(fecha_desde) != bool(fecha_hasta):  # XOR
         return False, "Both dates must be present or absent"
     if fecha_desde is not None and fecha_hasta is not None and fecha_hasta < fecha_desde:
         return False, "fecha_desde must be <= fecha_hasta"
-
-    # area is required
-    if area is None: # pyright: ignore[reportUnnecessaryComparison]
-        return False, "area is required"
+    if fecha_hasta is not None and fecha_hasta > date.today():
+        return False, "dates must be <= current date"
 
     # seccion can't be selected without gaceta
     if not gacetas and secciones:
@@ -94,9 +115,6 @@ def input_validation( # NOSONAR
                     f" for seccion {s.name}"
                 )
                 return False, message
-
-    if not isinstance(recaptcha, str): # type: ignore
-        return False, "recaptcha must be the type str"
 
     return True, "OK"
 

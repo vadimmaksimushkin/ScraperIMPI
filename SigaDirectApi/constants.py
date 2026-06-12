@@ -1,5 +1,11 @@
+import re
 from enum import Enum, StrEnum, auto
 from datetime import date
+
+# reCAPTCHA response tokens are opaque, URL-safe strings. They can't be verified
+# offline (only Google can), so this is a sanity gate on shape, not validity:
+# the URL-safe-base64 charset and a minimum length. Empty "" means "no token".
+RECAPTCHA_TOKEN_RE = re.compile(r"[A-Za-z0-9_-]{20,}")
 
 
 class RequestMethods(Enum):
