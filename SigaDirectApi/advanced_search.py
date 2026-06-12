@@ -17,6 +17,7 @@ from constants import (
     Columna,
     Dato,
     SECCION_COLUMNAS,
+    GACETA_COLUMNAS,
 )
 
 log = logging.getLogger("siga.search")
@@ -27,12 +28,6 @@ logging.basicConfig(
 )
 
 URL=f"{BASE}/api/BusquedaEstructurada/GetSearchEstructurada"
-
-
-# FIXME: set SECCION_COLUMNAS: dict[Gaceta, set[Columna]] in constants.py
-GACETA_COLUMNAS: dict[Gaceta, set[Columna]] = {}
-for _sec, _cols in SECCION_COLUMNAS.items():
-    GACETA_COLUMNAS.setdefault(_sec.gaceta, set()).update(_cols)
 
 
 def input_validation(
@@ -186,7 +181,7 @@ if __name__ == "__main__":
             ),
             Dato(
                 operador=Operador.OR,
-                columna=Columna.DENOMINACION,
+                columna=Columna.EXPEDIENTE,
                 valor="ZESTO"
             ),
         ]
@@ -207,86 +202,3 @@ if __name__ == "__main__":
             log.info(len(res.get("data", [])))
 
     asyncio.run(test())
-
-# test_payload_v1: dict[str, Any] = {
-#     "idArea": "2",
-#     "FechaDesde": "01-01-2026",
-#     "FechaHasta": "11-06-2026",
-#     "idGaceta": [37],
-#     "idSeccion": [],
-#     "datos": [
-#         {
-#             "operador": "",
-#             "columna": "Clase",
-#             "valor": "42",
-#             "fecha":""
-#         },
-#         {
-#             "operador": "OR",
-#             "columna": "Clase (s)",
-#             "valor": "40",
-#             "fecha": ""
-#         }
-#     ],
-#     "reCaptchaToken": "",
-# }
-# test_payload_v2: dict[str, Any] = {
-#     "idArea":"2",
-#     "FechaDesde":"01-01-2026",
-#     "FechaHasta":"11-06-2026",
-#     "idGaceta":[37,1],
-#     "idSeccion":[406],
-#     "datos": [
-#         {
-#             "operador":"",
-#             "columna":"Clase",
-#             "valor":"42",
-#             "fecha":"",
-#         },
-#     ],
-#     "reCaptchaToken":"",
-# }
-# test_payload_v3: dict[str, Any] = {
-#     "idArea":"2",
-#     "FechaDesde":"01-01-2026",
-#     "FechaHasta":"11-06-2026",
-#     "idGaceta":[37],
-#     "idSeccion":[406],
-#     "datos": [
-#         {
-#             "operador":None,
-#             "columna":"Autorización",
-#             "valor":"termino",
-#             "fecha":None,
-#         },
-#         {
-#             "operador":"OR",
-#             "columna":"Usuario Autorizado",
-#             "valor":"termino",
-#             "fecha":""
-#         },
-#     ],
-#     "reCaptchaToken":"",
-# }
-# test_payload_v4: dict[str, Any] = {
-#     "idArea":"1",
-#     "FechaDesde": None,
-#     "FechaHasta": None,
-#     "idGaceta": [],
-#     "idSeccion": [],
-#     "datos": [
-#         {
-#             "operador": "",
-#             "columna": "Fecha de petición",
-#             "valor": "\"",
-#             "fecha": "2026-06-10T06:00:00.000Z"
-#         },
-#         {
-#             "operador": "OR",
-#             "columna": "Fecha de Boletín",
-#             "valor": "\"",
-#             "fecha": "2026-06-09T06:00:00.000Z"
-#         }
-#     ],
-#     "reCaptchaToken": "",
-# }
