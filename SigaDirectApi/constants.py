@@ -354,8 +354,9 @@ class Columna(Enum):
 
 # Junction: which columnas are valid for each seccion (the 1035 pairs).
 # Regenerate from columnas_snapshot.json.
-SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
-    Seccion.MARCAS_REGISTRADAS: [
+# FIXME: comment out hardcode and make the dict auto-generated
+SECCION_COLUMNAS: dict[Seccion, set[Columna]] = {
+    Seccion.MARCAS_REGISTRADAS: {
         Columna.CLASE,
         Columna.DATOS_DEL_TITULAR,
         Columna.DENOMINACION,
@@ -364,8 +365,8 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.FECHA_DE_PRESENTACION,
         Columna.PRODUCTOS_Y_SERVICIOS,
         Columna.REGISTRO_DE_MARCA
-    ],
-    Seccion.AVISOS_COMERCIALES_REGISTRADOS: [
+    },
+    Seccion.AVISOS_COMERCIALES_REGISTRADOS: {
         Columna.CLASE,
         Columna.DATOS_DEL_TITULAR,
         Columna.DENOMINACION,
@@ -374,8 +375,8 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.FECHA_DE_PRESENTACION,
         Columna.PRODUCTOS_Y_SERVICIOS,
         Columna.REGISTRO_DE_AVISO_COMERCIAL,
-    ],
-    Seccion.NOMBRES_COMERCIALES_PUBLICADOS: [
+    },
+    Seccion.NOMBRES_COMERCIALES_PUBLICADOS: {
         Columna.CLASE,
         Columna.DATOS_DEL_TITULAR,
         Columna.DENOMINACION,
@@ -384,38 +385,38 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.FECHA_DE_PRESENTACION,
         Columna.PRODUCTOS_Y_SERVICIOS,
         Columna.REGISTRO_DE_NOMBRE_COMERCIAL,
-    ],
-    Seccion.FE_DE_ERRATAS_DE_MARCAS_REGISTRADAS_GACETA_DE_JULIO_DEL_2016: [
+    },
+    Seccion.FE_DE_ERRATAS_DE_MARCAS_REGISTRADAS_GACETA_DE_JULIO_DEL_2016: {
         Columna.DEBE_DECIR,
         Columna.DICE,
         Columna.ERROR_CORREGIDO,
-    ],
-    Seccion.FE_DE_ERRATAS_DE_LIMITACION_DE_PRODUCTOS_FAVORABLES_DE_MARCAS_GACETA_DE_JULIO_DEL_2016: [
+    },
+    Seccion.FE_DE_ERRATAS_DE_LIMITACION_DE_PRODUCTOS_FAVORABLES_DE_MARCAS_GACETA_DE_JULIO_DEL_2016: {
         Columna.DEBE_DECIR,
         Columna.DICE,
         Columna.ERROR_CORREGIDO,
-    ],
-    Seccion.FE_DE_ERRATAS_DE_AVISOS_COMERCIALES_REGISTRADOS_EN_EL_MES_GACETA_DE_JULIO_DEL_2016: [
+    },
+    Seccion.FE_DE_ERRATAS_DE_AVISOS_COMERCIALES_REGISTRADOS_EN_EL_MES_GACETA_DE_JULIO_DEL_2016: {
         Columna.DEBE_DECIR,
         Columna.DICE,
         Columna.ERROR_CORREGIDO,
-    ],
-    Seccion.FE_DE_ERRATAS_DE_RENOVACION_GACETA_DE_JULIO_DEL_2016: [
+    },
+    Seccion.FE_DE_ERRATAS_DE_RENOVACION_GACETA_DE_JULIO_DEL_2016: {
         Columna.DEBE_DECIR,
         Columna.DICE,
         Columna.ERROR_CORREGIDO,
-    ],
-    Seccion.FE_DE_ERRATAS_DE_INSCRIPCION_DE_LIMITACION_GACETA_DE_JULIO_DEL_2016: [
+    },
+    Seccion.FE_DE_ERRATAS_DE_INSCRIPCION_DE_LIMITACION_GACETA_DE_JULIO_DEL_2016: {
         Columna.DEBE_DECIR,
         Columna.DICE,
         Columna.ERROR_CORREGIDO,
-    ],
-    Seccion.FE_DE_ERRATAS_DE_INSCRIPCION_DE_CANCELACION_PARCIAL_GACETA_DE_JULIO_DEL_2016: [
+    },
+    Seccion.FE_DE_ERRATAS_DE_INSCRIPCION_DE_CANCELACION_PARCIAL_GACETA_DE_JULIO_DEL_2016: {
         Columna.DEBE_DECIR,
         Columna.DICE,
         Columna.ERROR_CORREGIDO,
-    ],
-    Seccion.SOLICITUDES_DE_PATENTE: [
+    },
+    Seccion.SOLICITUDES_DE_PATENTE: {
         Columna.AGENTE,
         Columna.CLASIFICACION_CIP,
         Columna.CLASIFICACION_CPC,
@@ -427,8 +428,8 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.SET,
         Columna.SOLICITANTE_S,
         Columna.TITULO,
-    ],
-    Seccion.SOLICITUDES_DE_PATENTE_CONFORME_AL_TRATADO_DE_COOPERACION_EN_MATERIA_DE_PATENTES: [
+    },
+    Seccion.SOLICITUDES_DE_PATENTE_CONFORME_AL_TRATADO_DE_COOPERACION_EN_MATERIA_DE_PATENTES: {
         Columna.AGENTE,
         Columna.CLASIFICACION_CIP,
         Columna.CLASIFICACION_CPC,
@@ -444,8 +445,8 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.SET,
         Columna.SOLICITANTE_S,
         Columna.TITULO,
-    ],
-    Seccion.SOLICITUDES_DE_PATENTE_PUBLICADAS_ANTICIPADAMENTE: [
+    },
+    Seccion.SOLICITUDES_DE_PATENTE_PUBLICADAS_ANTICIPADAMENTE: {
         Columna.AGENTE,
         Columna.CLASIFICACION_CIP,
         Columna.CLASIFICACION_CPC,
@@ -457,8 +458,8 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.SET,
         Columna.SOLICITANTE_S,
         Columna.TITULO,
-    ],
-    Seccion.SOLICITUDES_CONFORME_AL_TRATADO_DE_COOPERACION_EN_MATERIA_DE_PATENTES_PUBLICADAS_ANTICIPADAMENTE: [
+    },
+    Seccion.SOLICITUDES_CONFORME_AL_TRATADO_DE_COOPERACION_EN_MATERIA_DE_PATENTES_PUBLICADAS_ANTICIPADAMENTE: {
         Columna.AGENTE,
         Columna.CLASIFICACION_CIP,
         Columna.CLASIFICACION_CPC,
@@ -473,8 +474,8 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.RESUMEN,
         Columna.SOLICITANTE_S,
         Columna.TITULO,
-    ],
-    Seccion.SOLICITUDES_QUE_SE_TRANSFORMARON_DE_REGISTROS_A_SOLICITUDES_DE_PATENTES: [
+    },
+    Seccion.SOLICITUDES_QUE_SE_TRANSFORMARON_DE_REGISTROS_A_SOLICITUDES_DE_PATENTES: {
         Columna.AGENTE,
         Columna.CLASIFICACION_CIP,
         Columna.FECHA_DE_PRESENTACION_2,
@@ -484,49 +485,8 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.RESUMEN,
         Columna.SOLICITANTE_S,
         Columna.TITULO,
-    ],
-    Seccion.FE_DE_ERRATAS_DE_SOLICITUDES_DE_PATENTE: [
-        Columna.AGENTE,
-        Columna.CLASIFICACION_CIP,
-        Columna.CLASIFICACION_CPC,
-        Columna.FECHA_DE_PRESENTACION_2,
-        Columna.INVENTOR_ES,
-        Columna.NUMERO_DE_SOLICITUD,
-        Columna.PRIORIDAD_ES,
-        Columna.RESUMEN,
-        Columna.SET,
-        Columna.SOLICITANTE_S,
-        Columna.TITULO,
-    ],
-    Seccion.FE_DE_ERRATAS_DE_SOLICITUDES_DE_PATENTE_CONFORME_AL_TRATADO_DE_COOPERACION_EN_MATERIA_DE_PATENTES: [
-        Columna.AGENTE,
-        Columna.CLASIFICACION_CIP,
-        Columna.CLASIFICACION_CPC,
-        Columna.FECHA_DE_PRESENTACION_2,
-        Columna.FECHA_DE_PRESENTACION_INTERNACIONAL,
-        Columna.FECHA_DE_PUBLICACION_INTERNACIONAL,
-        Columna.INVENTOR_ES,
-        Columna.NUMERO_DE_PUBLICACION_INTERNACIONAL,
-        Columna.NUMERO_DE_SOLICITUD,
-        Columna.NUMERO_DE_SOLICITUD_INTERNACIONAL,
-        Columna.PRIORIDAD_ES,
-        Columna.RESUMEN,
-        Columna.SET,
-        Columna.SOLICITANTE_S,
-        Columna.TITULO,
-    ],
-    Seccion.FE_DE_ERRATAS_DE_SOLICITUDES_NORMALES_PUBLICADAS_ANTICIPADAMENTE: [
-        Columna.AGENTE,
-        Columna.CLASIFICACION_CIP,
-        Columna.FECHA_DE_PRESENTACION_2,
-        Columna.INVENTOR_ES,
-        Columna.NUMERO_DE_SOLICITUD,
-        Columna.PRIORIDAD_ES,
-        Columna.RESUMEN,
-        Columna.SOLICITANTE_S,
-        Columna.TITULO,
-    ],
-    Seccion.SOLICITUDES_DIVISIONALES_DE_PATENTE: [
+    },
+    Seccion.FE_DE_ERRATAS_DE_SOLICITUDES_DE_PATENTE: {
         Columna.AGENTE,
         Columna.CLASIFICACION_CIP,
         Columna.CLASIFICACION_CPC,
@@ -538,21 +498,8 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.SET,
         Columna.SOLICITANTE_S,
         Columna.TITULO,
-    ],
-    Seccion.SOLICITUDES_DE_REGISTRO_DE_MODELO_DE_UTILIDAD: [
-        Columna.AGENTE,
-        Columna.CLASIFICACION_CIP,
-        Columna.CLASIFICACION_CPC,
-        Columna.FECHA_DE_PRESENTACION_2,
-        Columna.INVENTOR_ES,
-        Columna.NUMERO_DE_SOLICITUD,
-        Columna.PRIORIDAD_ES,
-        Columna.RESUMEN,
-        Columna.SET,
-        Columna.SOLICITANTE_S,
-        Columna.TITULO,
-    ],
-    Seccion.SOLICITUDES_DE_REGISTRO_DE_MODELO_DE_UTILIDAD_CONFORME_AL_TRATADO_DE_COOPERACION_EN_MATERIA_DE_PATENTES: [
+    },
+    Seccion.FE_DE_ERRATAS_DE_SOLICITUDES_DE_PATENTE_CONFORME_AL_TRATADO_DE_COOPERACION_EN_MATERIA_DE_PATENTES: {
         Columna.AGENTE,
         Columna.CLASIFICACION_CIP,
         Columna.CLASIFICACION_CPC,
@@ -568,8 +515,19 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.SET,
         Columna.SOLICITANTE_S,
         Columna.TITULO,
-    ],
-    Seccion.SOLICITUDES_DIVISIONALES_DE_REGISTRO_DE_MODELO_DE_UTILIDAD: [
+    },
+    Seccion.FE_DE_ERRATAS_DE_SOLICITUDES_NORMALES_PUBLICADAS_ANTICIPADAMENTE: {
+        Columna.AGENTE,
+        Columna.CLASIFICACION_CIP,
+        Columna.FECHA_DE_PRESENTACION_2,
+        Columna.INVENTOR_ES,
+        Columna.NUMERO_DE_SOLICITUD,
+        Columna.PRIORIDAD_ES,
+        Columna.RESUMEN,
+        Columna.SOLICITANTE_S,
+        Columna.TITULO,
+    },
+    Seccion.SOLICITUDES_DIVISIONALES_DE_PATENTE: {
         Columna.AGENTE,
         Columna.CLASIFICACION_CIP,
         Columna.CLASIFICACION_CPC,
@@ -581,8 +539,51 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.SET,
         Columna.SOLICITANTE_S,
         Columna.TITULO,
-    ],
-    Seccion.FE_DE_ERRATAS_DE_SOLICITUDES_DE_REGISTRO_DE_MODELO_DE_UTILIDAD: [
+    },
+    Seccion.SOLICITUDES_DE_REGISTRO_DE_MODELO_DE_UTILIDAD: {
+        Columna.AGENTE,
+        Columna.CLASIFICACION_CIP,
+        Columna.CLASIFICACION_CPC,
+        Columna.FECHA_DE_PRESENTACION_2,
+        Columna.INVENTOR_ES,
+        Columna.NUMERO_DE_SOLICITUD,
+        Columna.PRIORIDAD_ES,
+        Columna.RESUMEN,
+        Columna.SET,
+        Columna.SOLICITANTE_S,
+        Columna.TITULO,
+    },
+    Seccion.SOLICITUDES_DE_REGISTRO_DE_MODELO_DE_UTILIDAD_CONFORME_AL_TRATADO_DE_COOPERACION_EN_MATERIA_DE_PATENTES: {
+        Columna.AGENTE,
+        Columna.CLASIFICACION_CIP,
+        Columna.CLASIFICACION_CPC,
+        Columna.FECHA_DE_PRESENTACION_2,
+        Columna.FECHA_DE_PRESENTACION_INTERNACIONAL,
+        Columna.FECHA_DE_PUBLICACION_INTERNACIONAL,
+        Columna.INVENTOR_ES,
+        Columna.NUMERO_DE_PUBLICACION_INTERNACIONAL,
+        Columna.NUMERO_DE_SOLICITUD,
+        Columna.NUMERO_DE_SOLICITUD_INTERNACIONAL,
+        Columna.PRIORIDAD_ES,
+        Columna.RESUMEN,
+        Columna.SET,
+        Columna.SOLICITANTE_S,
+        Columna.TITULO,
+    },
+    Seccion.SOLICITUDES_DIVISIONALES_DE_REGISTRO_DE_MODELO_DE_UTILIDAD: {
+        Columna.AGENTE,
+        Columna.CLASIFICACION_CIP,
+        Columna.CLASIFICACION_CPC,
+        Columna.FECHA_DE_PRESENTACION_2,
+        Columna.INVENTOR_ES,
+        Columna.NUMERO_DE_SOLICITUD,
+        Columna.PRIORIDAD_ES,
+        Columna.RESUMEN,
+        Columna.SET,
+        Columna.SOLICITANTE_S,
+        Columna.TITULO,
+    },
+    Seccion.FE_DE_ERRATAS_DE_SOLICITUDES_DE_REGISTRO_DE_MODELO_DE_UTILIDAD: {
         Columna.AGENTE,
         Columna.CLASIFICACION_CIP,
         Columna.CLASIFICACION_CPC,
@@ -595,8 +596,8 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.SET,
         Columna.SOLICITANTE_S,
         Columna.TITULO,
-    ],
-    Seccion.SOLICITUDES_DE_REGISTRO_DE_DISENO_INDUSTRIAL: [
+    },
+    Seccion.SOLICITUDES_DE_REGISTRO_DE_DISENO_INDUSTRIAL: {
         Columna.AGENTE,
         Columna.FECHA_DE_PRESENTACION_2,
         Columna.INVENTOR_ES,
@@ -605,8 +606,8 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.PRIORIDAD_ES,
         Columna.SOLICITANTE_S,
         Columna.TITULO,
-    ],
-    Seccion.SOLICITUDES_DE_REGISTRO_DE_DISENO_INDUSTRIAL_DIVISIONALES: [
+    },
+    Seccion.SOLICITUDES_DE_REGISTRO_DE_DISENO_INDUSTRIAL_DIVISIONALES: {
         Columna.AGENTE,
         Columna.FECHA_DE_PRESENTACION_2,
         Columna.INVENTOR_ES,
@@ -615,8 +616,8 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.PRIORIDAD_ES,
         Columna.SOLICITANTE_S,
         Columna.TITULO,
-    ],
-    Seccion.FE_DE_ERRATAS_DE_SOLICITUDES_DE_REGISTRO_DISENO_INDUSTRIAL: [
+    },
+    Seccion.FE_DE_ERRATAS_DE_SOLICITUDES_DE_REGISTRO_DISENO_INDUSTRIAL: {
         Columna.AGENTE,
         Columna.ERROR_CORREGIDO_2,
         Columna.FECHA_DE_PRESENTACION_2,
@@ -626,8 +627,8 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.PRIORIDAD_ES,
         Columna.SOLICITANTE_S,
         Columna.TITULO,
-    ],
-    Seccion.SOLICITUDES_DE_REGISTRO_DE_DISENO_INDUSTRIAL_CONFORME_AL_SISTEMA_DE_LA_HAYA: [
+    },
+    Seccion.SOLICITUDES_DE_REGISTRO_DE_DISENO_INDUSTRIAL_CONFORME_AL_SISTEMA_DE_LA_HAYA: {
         Columna.AGENTE,
         Columna.FECHA_DE_BOLETIN,
         Columna.FECHA_DE_PRESENTACION_2,
@@ -640,8 +641,8 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.SOLICITANTE_S,
         Columna.TITULAR_ES,
         Columna.TITULO,
-    ],
-    Seccion.SOLICITUDES_DIVISIONALES_DE_REGISTRO_DE_DISENO_INDUSTRIAL_CONFORME_AL_SISTEMA_DE_LA_HAYA: [
+    },
+    Seccion.SOLICITUDES_DIVISIONALES_DE_REGISTRO_DE_DISENO_INDUSTRIAL_CONFORME_AL_SISTEMA_DE_LA_HAYA: {
         Columna.AGENTE,
         Columna.FECHA_DE_BOLETIN,
         Columna.FECHA_DE_PRESENTACION_2,
@@ -652,8 +653,8 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.SOLICITANTE_S,
         Columna.TITULAR_ES,
         Columna.TITULO,
-    ],
-    Seccion.FE_DE_ERRATAS_DE_SOLICITUDES_DIVISIONALES_DE_PATENTE: [
+    },
+    Seccion.FE_DE_ERRATAS_DE_SOLICITUDES_DIVISIONALES_DE_PATENTE: {
         Columna.AGENTE,
         Columna.CLASIFICACION_CIP,
         Columna.CLASIFICACION_CPC,
@@ -666,8 +667,8 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.SET,
         Columna.SOLICITANTE_S,
         Columna.TITULO,
-    ],
-    Seccion.FE_DE_ERRATAS_DE_SOLICITUDES_DE_REGISTRO_DE_DISENO_INDUSTRIAL_DIVISIONALES: [
+    },
+    Seccion.FE_DE_ERRATAS_DE_SOLICITUDES_DE_REGISTRO_DE_DISENO_INDUSTRIAL_DIVISIONALES: {
         Columna.AGENTE,
         Columna.ERROR_CORREGIDO_2,
         Columna.FECHA_DE_PRESENTACION_2,
@@ -677,8 +678,8 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.PRIORIDAD_ES,
         Columna.SOLICITANTE_S,
         Columna.TITULO,
-    ],
-    Seccion.PATENTES_302: [
+    },
+    Seccion.PATENTES_302: {
         Columna.AGENTE,
         Columna.CLASIFICACION_CIP,
         Columna.CLASIFICACION_CPC,
@@ -697,8 +698,8 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.SET,
         Columna.TITULAR,
         Columna.TITULO,
-    ],
-    Seccion.REGISTROS_DE_MODELOS_DE_UTILIDAD_304: [
+    },
+    Seccion.REGISTROS_DE_MODELOS_DE_UTILIDAD_304: {
         Columna.AGENTE,
         Columna.CLASIFICACION_CIP,
         Columna.CLASIFICACION_CPC,
@@ -717,8 +718,8 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.SET,
         Columna.TITULAR,
         Columna.TITULO,
-    ],
-    Seccion.REGISTROS_DE_DISENOS_INDUSTRIALES_MODELOS_Y_DIBUJOS_INDUSTRIALES_305: [
+    },
+    Seccion.REGISTROS_DE_DISENOS_INDUSTRIALES_MODELOS_Y_DIBUJOS_INDUSTRIALES_305: {
         Columna.AGENTE,
         Columna.FECHA_DE_CONCESION_2,
         Columna.FECHA_DE_PRESENTACION_2,
@@ -731,8 +732,8 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.RESUMEN,
         Columna.TITULAR,
         Columna.TITULO,
-    ],
-    Seccion.ESQUEMAS_DE_TRAZADO_DE_CIRCUITOS_INTEGRADOS: [
+    },
+    Seccion.ESQUEMAS_DE_TRAZADO_DE_CIRCUITOS_INTEGRADOS: {
         Columna.AGENTE,
         Columna.CLASIFICACION_CIP,
         Columna.FECHA_DE_CONCESION_2,
@@ -749,8 +750,8 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.RESUMEN,
         Columna.TITULAR,
         Columna.TITULO,
-    ],
-    Seccion.FE_DE_ERRATAS_DE_PATENTES: [
+    },
+    Seccion.FE_DE_ERRATAS_DE_PATENTES: {
         Columna.AGENTE,
         Columna.CLASIFICACION_CIP,
         Columna.CLASIFICACION_CPC,
@@ -771,8 +772,8 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.SET,
         Columna.TITULAR,
         Columna.TITULO,
-    ],
-    Seccion.FE_DE_ERRATAS_DE_REGISTROS_DE_MODELOS_DE_UTILIDAD: [
+    },
+    Seccion.FE_DE_ERRATAS_DE_REGISTROS_DE_MODELOS_DE_UTILIDAD: {
         Columna.AGENTE,
         Columna.CLASIFICACION_CIP,
         Columna.ERROR_CORREGIDO_2,
@@ -790,8 +791,8 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.RESUMEN,
         Columna.TITULAR,
         Columna.TITULO,
-    ],
-    Seccion.FE_DE_ERRATAS_DE_REGISTROS_DE_DISENOS_INDUSTRIALES_MODELOS_Y_DIBUJOS_INDUSTRIALES: [
+    },
+    Seccion.FE_DE_ERRATAS_DE_REGISTROS_DE_DISENOS_INDUSTRIALES_MODELOS_Y_DIBUJOS_INDUSTRIALES: {
         Columna.AGENTE,
         Columna.ERROR_CORREGIDO_2,
         Columna.FECHA_DE_CONCESION_2,
@@ -805,12 +806,12 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.RESUMEN,
         Columna.TITULAR,
         Columna.TITULO,
-    ],
-    Seccion.FE_DE_ERRATAS_DE_LICENCIAS: [
+    },
+    Seccion.FE_DE_ERRATAS_DE_LICENCIAS: {
         Columna.NUEVO_TITULAR,
         Columna.NUMERO_DE_CONCESION,
-    ],
-    Seccion.REGISTROS_DE_MODELO: [
+    },
+    Seccion.REGISTROS_DE_MODELO: {
         Columna.FECHA_DE_CONCESION_2,
         Columna.FECHA_DE_PRESENTACION_2,
         Columna.INVENTOR_ES,
@@ -821,8 +822,8 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.RESUMEN,
         Columna.TITULAR,
         Columna.TITULO,
-    ],
-    Seccion.CERTIFICADOS_DE_INVENCION: [
+    },
+    Seccion.CERTIFICADOS_DE_INVENCION: {
         Columna.CLASIFICACION_CIP,
         Columna.FECHA_DE_CONCESION_2,
         Columna.FECHA_DE_PRESENTACION_2,
@@ -833,52 +834,52 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.RESUMEN,
         Columna.TITULAR,
         Columna.TITULO,
-    ],
-    Seccion.EMBARGOS_JUDICIALES_RELACIONADOS_CON_PATENTES: [
+    },
+    Seccion.EMBARGOS_JUDICIALES_RELACIONADOS_CON_PATENTES: {
         Columna.FECHA_DE_PRESENTACION_2,
         Columna.NUMERO_DE_CONCESION,
-    ],
-    Seccion.PATENTES_QUE_CUMPLIERON_SU_PLAZO_DE_VIGENCIA: [
+    },
+    Seccion.PATENTES_QUE_CUMPLIERON_SU_PLAZO_DE_VIGENCIA: {
         Columna.CLASIFICACION_CIP,
         Columna.FECHA_DE_LA_SOLICITUD_PRIORITARIA,
         Columna.NUMERO_DE_CONCESION,
         Columna.TITULAR,
         Columna.TITULO,
-    ],
-    Seccion.ADHESION_DE_GOBIERNOS_A_LA_CONVENCION_DE_UNION_DE_PARIS: [
+    },
+    Seccion.ADHESION_DE_GOBIERNOS_A_LA_CONVENCION_DE_UNION_DE_PARIS: {
         Columna.NUMERO_DE_CONCESION,
-    ],
-    Seccion.ADJUDICACION_DE_PATENTES_OTORGADAS: [
+    },
+    Seccion.ADJUDICACION_DE_PATENTES_OTORGADAS: {
         Columna.NO_RESOLUCION,
         Columna.NUMERO_DE_CONCESION,
-    ],
-    Seccion.PATENTES_CUYA_FALTA_DE_EXPLOTACION_SE_HA_COMPROBADO: [
+    },
+    Seccion.PATENTES_CUYA_FALTA_DE_EXPLOTACION_SE_HA_COMPROBADO: {
         Columna.NUMERO_DE_CONCESION,
         Columna.TITULAR,
         Columna.TITULO,
-    ],
-    Seccion.RESOLUCIONES_DE_PRIORIDAD_RELACIONADAS_CON_PATENTES_CONCEDIDAS: [
+    },
+    Seccion.RESOLUCIONES_DE_PRIORIDAD_RELACIONADAS_CON_PATENTES_CONCEDIDAS: {
         Columna.NUMERO_DE_CONCESION,
-    ],
-    Seccion.RECTIFICACIONES: [
+    },
+    Seccion.RECTIFICACIONES: {
         Columna.NUMERO_DE_CONCESION,
-    ],
-    Seccion.INVENCIONES_CUYA_NOVEDAD_FUE_EXAMINADA: [
+    },
+    Seccion.INVENCIONES_CUYA_NOVEDAD_FUE_EXAMINADA: {
         Columna.FECHA_DE_PRESENTACION_2,
         Columna.NO_RESOLUCION,
         Columna.NUMERO_DE_CONCESION,
         Columna.NUMERO_DE_SOLICITUD,
         Columna.TITULAR,
         Columna.TITULO,
-    ],
-    Seccion.HIPOTECAS_SOBRE_DERECHOS_DE_PATENTES_CONCEDIDAS: [
+    },
+    Seccion.HIPOTECAS_SOBRE_DERECHOS_DE_PATENTES_CONCEDIDAS: {
         Columna.FECHA_DE_PRESENTACION_2,
         Columna.NUEVO_TITULAR,
         Columna.NUMERO_DE_CONCESION,
         Columna.TITULAR,
         Columna.TITULO,
-    ],
-    Seccion.PATENTES_CUYA_PRIORIDAD_DE_FECHA_LEGAL_HA_SIDO_RECONOCIDA_EN_MEXICO: [
+    },
+    Seccion.PATENTES_CUYA_PRIORIDAD_DE_FECHA_LEGAL_HA_SIDO_RECONOCIDA_EN_MEXICO: {
         Columna.FECHA_DE_LA_SOLICITUD_PRIORITARIA,
         Columna.NO_RESOLUCION,
         Columna.NUMERO_DE_CONCESION,
@@ -886,36 +887,36 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.OFICINA_QUE_ATRIBUYE_LA_PRIORIDAD,
         Columna.TITULAR,
         Columna.TITULO,
-    ],
-    Seccion.PATENTES_CUYOS_DERECHOS_DEL_SEGUNDO_PLAZO_FUERON_PAGADOS: [
+    },
+    Seccion.PATENTES_CUYOS_DERECHOS_DEL_SEGUNDO_PLAZO_FUERON_PAGADOS: {
         Columna.FECHA_DE_PRESENTACION_2,
         Columna.INVENTOR_ES,
         Columna.NUMERO_DE_CONCESION,
         Columna.TITULO,
-    ],
-    Seccion.AVISOS_BIMESTRALES_EN_RELACION_CON_LA_EXPLOTACION_INDUSTRIAL_DE_PATENTES: [
+    },
+    Seccion.AVISOS_BIMESTRALES_EN_RELACION_CON_LA_EXPLOTACION_INDUSTRIAL_DE_PATENTES: {
         Columna.NUMERO_DE_CONCESION,
-    ],
-    Seccion.PATENTES_QUE_HAN_SIDO_CONVERTIDAS_EN_DEFINITIVAS: [
+    },
+    Seccion.PATENTES_QUE_HAN_SIDO_CONVERTIDAS_EN_DEFINITIVAS: {
         Columna.INVENTOR_ES,
         Columna.NUMERO_DE_CONCESION,
         Columna.NUMERO_DE_SOLICITUD,
         Columna.TITULO,
-    ],
-    Seccion.PATENTES_PROVISIONALES_QUE_HAN_CADUCADO_POR_NO_HABER_PAGADO_EL_IMPUESTO_DEL_SEGUNDO_PLAZO: [
+    },
+    Seccion.PATENTES_PROVISIONALES_QUE_HAN_CADUCADO_POR_NO_HABER_PAGADO_EL_IMPUESTO_DEL_SEGUNDO_PLAZO: {
         Columna.FECHA_DE_PRESENTACION_2,
         Columna.INVENTOR_ES,
         Columna.NUMERO_DE_CONCESION,
         Columna.NUMERO_DE_SOLICITUD,
         Columna.TITULO,
-    ],
-    Seccion.ASUNTOS_ABANDONADOS_Y_DESECHADOS: [
+    },
+    Seccion.ASUNTOS_ABANDONADOS_Y_DESECHADOS: {
         Columna.FECHA_DE_PRESENTACION_2,
         Columna.INVENTOR_ES,
         Columna.NUMERO_DE_CONCESION,
         Columna.TITULO,
-    ],
-    Seccion.REGISTROS_DE_DISENOS_INDUSTRIALES_MODELOS_Y_DIBUJOS_INDUSTRIALES_100267: [
+    },
+    Seccion.REGISTROS_DE_DISENOS_INDUSTRIALES_MODELOS_Y_DIBUJOS_INDUSTRIALES_100267: {
         Columna.AGENTE,
         Columna.FECHA_DE_CONCESION_2,
         Columna.FECHA_DE_PRESENTACION_2,
@@ -928,8 +929,8 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.RESUMEN,
         Columna.TITULAR,
         Columna.TITULO,
-    ],
-    Seccion.REGISTROS_DE_DISENOS_INDUSTRIALES_CONFORME_AL_ARREGLO_DE_LA_HAYA_MODELOS_Y_DIBUJOS_INDUSTRIALES: [
+    },
+    Seccion.REGISTROS_DE_DISENOS_INDUSTRIALES_CONFORME_AL_ARREGLO_DE_LA_HAYA_MODELOS_Y_DIBUJOS_INDUSTRIALES: {
         Columna.AGENTE_NACIONAL,
         Columna.FECHA_DE_CONCESION_2,
         Columna.FECHA_DE_PRESENTACION_2,
@@ -943,16 +944,16 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.RESUMEN,
         Columna.TITULAR,
         Columna.TITULO,
-    ],
-    Seccion.EMITIDAS_POR_LA_SUBDIRECCION_DIVISIONAL_DE_PROCESOS_DE_PROPIEDAD_INDUSTRIAL_152: [
+    },
+    Seccion.EMITIDAS_POR_LA_SUBDIRECCION_DIVISIONAL_DE_PROCESOS_DE_PROPIEDAD_INDUSTRIAL_152: {
         Columna.ACTO,
         Columna.ACTOR,
         Columna.DEMANDADO,
         Columna.EXPEDIENTE,
         Columna.FOLIO_SALIDA,
         Columna.SENTIDO,
-    ],
-    Seccion.EMITIDAS_POR_LA_SUBDIRECCION_DIVISIONAL_DE_CUMPLIMIENTO_DE_EJECUTORIA_153: [
+    },
+    Seccion.EMITIDAS_POR_LA_SUBDIRECCION_DIVISIONAL_DE_CUMPLIMIENTO_DE_EJECUTORIA_153: {
         Columna.ACTO,
         Columna.ACTOR,
         Columna.DEMANDADO,
@@ -960,77 +961,77 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.FOLIO_SALIDA,
         Columna.RECURRENTE,
         Columna.SENTIDO,
-    ],
-    Seccion.EMITIDAS_POR_LA_SUBDIRECCION_DIVISIONAL_DE_INFRACCIONES_ADMINISTRATIVAS_EN_MATERIA_DE_COMERCIO_154: [
+    },
+    Seccion.EMITIDAS_POR_LA_SUBDIRECCION_DIVISIONAL_DE_INFRACCIONES_ADMINISTRATIVAS_EN_MATERIA_DE_COMERCIO_154: {
         Columna.ACTO,
         Columna.ACTOR,
         Columna.DEMANDADO,
         Columna.EXPEDIENTE,
         Columna.FOLIO_SALIDA,
         Columna.SENTIDO,
-    ],
-    Seccion.EMITIDAS_POR_LA_SUBDIRECCION_DIVISIONAL_DE_PREVENCION_DE_LA_COMPETENCIA_DESLEAL_155: [
+    },
+    Seccion.EMITIDAS_POR_LA_SUBDIRECCION_DIVISIONAL_DE_PREVENCION_DE_LA_COMPETENCIA_DESLEAL_155: {
         Columna.ACTO,
         Columna.ACTOR,
         Columna.DEMANDADO,
         Columna.EXPEDIENTE,
         Columna.FOLIO_SALIDA,
         Columna.SENTIDO,
-    ],
-    Seccion.RECURSOS_DE_REVISION_157: [
+    },
+    Seccion.RECURSOS_DE_REVISION_157: {
         Columna.ACTO,
         Columna.EXPEDIENTE,
         Columna.FOLIO_SALIDA,
         Columna.RECURRENTE,
         Columna.SENTIDO,
-    ],
-    Seccion.TRANSMISION_DE_DERECHOS: [
+    },
+    Seccion.TRANSMISION_DE_DERECHOS: {
         Columna.NUEVO_TITULAR,
         Columna.NUMERO_DE_CONCESION,
         Columna.NUMERO_DE_SOLICITUD,
-    ],
-    Seccion.LICENCIAS_DE_EXPLOTACION: [
+    },
+    Seccion.LICENCIAS_DE_EXPLOTACION: {
         Columna.LICENCIATARIO,
         Columna.NUMERO_DE_CONCESION,
         Columna.NUMERO_DE_SOLICITUD,
-    ],
-    Seccion.SUBLICENCIAS_DE_EXPLOTACION: [
+    },
+    Seccion.SUBLICENCIAS_DE_EXPLOTACION: {
         Columna.NUMERO_DE_CONCESION,
         Columna.NUMERO_DE_SOLICITUD,
         Columna.SUBLICENCIATARIO,
-    ],
-    Seccion.TRANSFORMACION_DE_REGIMEN_JURIDICO: [
+    },
+    Seccion.TRANSFORMACION_DE_REGIMEN_JURIDICO: {
         Columna.NUEVO_TITULAR,
         Columna.NUMERO_DE_CONCESION,
         Columna.NUMERO_DE_SOLICITUD,
-    ],
-    Seccion.CAMBIO_DE_RAZON_SOCIAL: [
+    },
+    Seccion.CAMBIO_DE_RAZON_SOCIAL: {
         Columna.NUEVO_TITULAR,
         Columna.NUMERO_DE_CONCESION,
         Columna.NUMERO_DE_SOLICITUD,
-    ],
-    Seccion.CAMBIOS_EN_PATENTES: [
+    },
+    Seccion.CAMBIOS_EN_PATENTES: {
         Columna.FECHA_DE_RESOLUCION,
         Columna.NO_RESOLUCION,
         Columna.NUMERO_DE_CONCESION,
         Columna.NUMERO_DE_SOLICITUD,
         Columna.TITULAR,
-    ],
-    Seccion.CAMBIOS_DE_REGISTROS_DE_DISENOS_INDUSTRIALES: [
+    },
+    Seccion.CAMBIOS_DE_REGISTROS_DE_DISENOS_INDUSTRIALES: {
         Columna.FECHA_DE_RESOLUCION,
         Columna.NO_RESOLUCION,
         Columna.NUMERO_DE_CONCESION,
         Columna.NUMERO_DE_SOLICITUD,
         Columna.TITULAR,
-    ],
-    Seccion.CAMBIOS_DE_REGISTROS_DE_MODELO_DE_UTILIDAD: [
+    },
+    Seccion.CAMBIOS_DE_REGISTROS_DE_MODELO_DE_UTILIDAD: {
         Columna.FECHA_DE_RESOLUCION,
         Columna.NO_RESOLUCION,
         Columna.NUMERO_DE_CONCESION,
         Columna.NUMERO_DE_SOLICITUD,
         Columna.TITULAR,
-    ],
-    Seccion.PATENTES_VIGENTES_SUSCEPTIBLES_DE_SER_EMPLEADAS_EN_MEDICAMENTOS_ALOPATICOS: [
+    },
+    Seccion.PATENTES_VIGENTES_SUSCEPTIBLES_DE_SER_EMPLEADAS_EN_MEDICAMENTOS_ALOPATICOS: {
         Columna.ANUALIDADES,
         Columna.DESCRIPCION_ESPECIFICA,
         Columna.NOMBRE_GENERICO,
@@ -1040,8 +1041,8 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.REIVINDICACIONES,
         Columna.TITULAR,
         Columna.VIGENCIA,
-    ],
-    Seccion.FE_DE_ERRATAS_100266: [
+    },
+    Seccion.FE_DE_ERRATAS_100266: {
         Columna.ANUALIDADES,
         Columna.CATEGORIA_DE_PROTECCION,
         Columna.DENOMINACION_GENERICA_O_NOMBRE_RECONOCIDO_INTERNACIONALMENTE,
@@ -1054,8 +1055,8 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.SUBLICENCIAS,
         Columna.TITULAR,
         Columna.VIGENCIA,
-    ],
-    Seccion.LISTADO_DE_MEDICAMENTOS_VIGENTES: [
+    },
+    Seccion.LISTADO_DE_MEDICAMENTOS_VIGENTES: {
         Columna.ANUALIDADES,
         Columna.DESCRIPCION_ESPECIFICA,
         Columna.NOMBRE_GENERICO,
@@ -1066,8 +1067,8 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.TIPO_DE_PATENTE,
         Columna.TITULAR,
         Columna.VIGENCIA,
-    ],
-    Seccion.PRIMERA_SECCION_FARMACOQUIMICOS: [
+    },
+    Seccion.PRIMERA_SECCION_FARMACOQUIMICOS: {
         Columna.ANUALIDADES,
         Columna.CATEGORIA_DE_PROTECCION,
         Columna.DENOMINACION_GENERICA_O_NOMBRE_RECONOCIDO_INTERNACIONALMENTE,
@@ -1083,8 +1084,8 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.SUBLICENCIAS,
         Columna.TITULAR,
         Columna.VIGENCIA,
-    ],
-    Seccion.SEGUNDA_SECCION_BIOTECNOLOGICOS: [
+    },
+    Seccion.SEGUNDA_SECCION_BIOTECNOLOGICOS: {
         Columna.ANUALIDADES,
         Columna.CATEGORIA_DE_PROTECCION,
         Columna.DENOMINACION_GENERICA_O_NOMBRE_RECONOCIDO_INTERNACIONALMENTE,
@@ -1100,51 +1101,51 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.SUBLICENCIAS,
         Columna.TITULAR,
         Columna.VIGENCIA,
-    ],
-    Seccion.SOLICITUDES_DE_MARCAS_ABANDONADAS: [
+    },
+    Seccion.SOLICITUDES_DE_MARCAS_ABANDONADAS: {
         Columna.DENOMINACION,
         Columna.EXPEDIENTE,
-    ],
-    Seccion.SOLICITUDES_DE_NOMBRES_COMERCIALES_ABANDONADAS: [
+    },
+    Seccion.SOLICITUDES_DE_NOMBRES_COMERCIALES_ABANDONADAS: {
         Columna.DENOMINACION,
         Columna.EXPEDIENTE,
-    ],
-    Seccion.SOLICITUDES_DE_AVISOS_COMERCIALES_ABANDONADAS: [
+    },
+    Seccion.SOLICITUDES_DE_AVISOS_COMERCIALES_ABANDONADAS: {
         Columna.DENOMINACION,
         Columna.EXPEDIENTE,
-    ],
-    Seccion.OFICIOS_REFERENTES_A_SOLICITUDES_DE_PATENTE: [
+    },
+    Seccion.OFICIOS_REFERENTES_A_SOLICITUDES_DE_PATENTE: {
         Columna.AGENTE,
         Columna.NUMERO_DE_SOLICITUD,
         Columna.NUMERO_DEL_OFICIO,
         Columna.SOLICITANTE_S,
-    ],
-    Seccion.OFICIOS_REFERENTES_A_SOLICITUDES_DE_DISENOS_INDUSTRIALES_O_MODELOS_DE_UTILIDAD: [
+    },
+    Seccion.OFICIOS_REFERENTES_A_SOLICITUDES_DE_DISENOS_INDUSTRIALES_O_MODELOS_DE_UTILIDAD: {
         Columna.AGENTE,
         Columna.NUMERO_DE_SOLICITUD,
         Columna.NUMERO_DEL_OFICIO,
         Columna.SOLICITANTE_S,
-    ],
-    Seccion.SOLICITUDES_DE_PATENTE_ABANDONADAS_POR_FALTA_DE_PAGO_PARA_EXPEDICION_DE_TITULO: [
+    },
+    Seccion.SOLICITUDES_DE_PATENTE_ABANDONADAS_POR_FALTA_DE_PAGO_PARA_EXPEDICION_DE_TITULO: {
         Columna.FECHA_DE_PRESENTACION_2,
         Columna.NUMERO_DE_SOLICITUD,
         Columna.TITULAR,
-    ],
-    Seccion.SOLICITUDES_DE_MODELOS_DE_UTILIDAD_ABANDONADAS_Y_DESISTIDAS: [
+    },
+    Seccion.SOLICITUDES_DE_MODELOS_DE_UTILIDAD_ABANDONADAS_Y_DESISTIDAS: {
         Columna.FECHA_DE_PRESENTACION_2,
         Columna.NUMERO_DE_EXPEDIENTE,
         Columna.NUMERO_DE_SOLICITUD,
         Columna.SERIE_DEL_EXPEDIENTE,
         Columna.TITULAR,
-    ],
-    Seccion.SOLICITUDES_DE_DISENOS_INDUSTRIALES_ABANDONADAS_Y_DESISTIDAS: [
+    },
+    Seccion.SOLICITUDES_DE_DISENOS_INDUSTRIALES_ABANDONADAS_Y_DESISTIDAS: {
         Columna.FECHA_DE_PRESENTACION_2,
         Columna.NUMERO_DE_EXPEDIENTE,
         Columna.NUMERO_DE_SOLICITUD,
         Columna.SERIE_DEL_EXPEDIENTE,
         Columna.TITULAR,
-    ],
-    Seccion.CERTIFICADOS_DE_INVENCION_REGISTRADOS_DECLARADOS_CADUCOS_POR_TERMINO_DE_TIEMPO_DE_VIGENCIA: [
+    },
+    Seccion.CERTIFICADOS_DE_INVENCION_REGISTRADOS_DECLARADOS_CADUCOS_POR_TERMINO_DE_TIEMPO_DE_VIGENCIA: {
         Columna.INVENTOR_ES,
         Columna.NUMERO_DE_CONCESION,
         Columna.NUMERO_DE_EXPEDIENTE,
@@ -1152,8 +1153,8 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.SERIE_DEL_EXPEDIENTE,
         Columna.TITULAR,
         Columna.TITULO,
-    ],
-    Seccion.SOLICITUDES_DE_PATENTE_ABANDONADAS: [
+    },
+    Seccion.SOLICITUDES_DE_PATENTE_ABANDONADAS: {
         Columna.FECHA_DE_PRESENTACION_2,
         Columna.INVENTOR_ES,
         Columna.NACIONALIDAD_INVENTOR,
@@ -1165,37 +1166,37 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.RESUMEN,
         Columna.SERIE_DEL_EXPEDIENTE,
         Columna.TITULO,
-    ],
-    Seccion.PATENTES_DECLARADAS_CADUCAS_POR_TERMINO_DE_SUS_PLAZOS_DE_VIGENCIA: [
+    },
+    Seccion.PATENTES_DECLARADAS_CADUCAS_POR_TERMINO_DE_SUS_PLAZOS_DE_VIGENCIA: {
         Columna.FECHA_DE_CONCESION_2,
         Columna.INVENTOR_ES,
         Columna.NUMERO_DE_CONCESION,
         Columna.TITULO,
-    ],
-    Seccion.REGISTROS_DE_MODELO_Y_DIBUJOS_INDUSTRIALES_QUE_CADUCARON: [
+    },
+    Seccion.REGISTROS_DE_MODELO_Y_DIBUJOS_INDUSTRIALES_QUE_CADUCARON: {
         Columna.INVENTOR_ES,
         Columna.NUMERO_DE_CONCESION,
         Columna.TITULO,
-    ],
-    Seccion.SOLICITUDES_DE_CERTIFICADOS_DE_INVENCION_ABANDONADOS: [
+    },
+    Seccion.SOLICITUDES_DE_CERTIFICADOS_DE_INVENCION_ABANDONADOS: {
         Columna.NUMERO_DE_EXPEDIENTE,
-    ],
-    Seccion.SOLICITUDES_DE_REGISTROS_DE_MODELO_ABANDONADOS: [
+    },
+    Seccion.SOLICITUDES_DE_REGISTROS_DE_MODELO_ABANDONADOS: {
         Columna.NUMERO_DE_EXPEDIENTE,
-    ],
-    Seccion.CITA_A_PAGO_DE_SOLICITUDES_DE_PATENTES: [
+    },
+    Seccion.CITA_A_PAGO_DE_SOLICITUDES_DE_PATENTES: {
         Columna.AGENTE,
         Columna.NUMERO_DE_SOLICITUD,
         Columna.NUMERO_DEL_OFICIO,
         Columna.SOLICITANTE_S,
-    ],
-    Seccion.CITA_A_PAGO_DE_SOLICITUDES_DE_MODELOS_DE_UTILIDAD: [
+    },
+    Seccion.CITA_A_PAGO_DE_SOLICITUDES_DE_MODELOS_DE_UTILIDAD: {
         Columna.AGENTE,
         Columna.NUMERO_DE_SOLICITUD,
         Columna.NUMERO_DEL_OFICIO,
         Columna.SOLICITANTE_S,
-    ],
-    Seccion.SOLICITUDES_DE_USO_LIBRE_ABANDONADAS_DESISTIDAS_DESECHADAS_RETIRADAS_O_NEGADA_SU_CONCESION: [
+    },
+    Seccion.SOLICITUDES_DE_USO_LIBRE_ABANDONADAS_DESISTIDAS_DESECHADAS_RETIRADAS_O_NEGADA_SU_CONCESION: {
         Columna.CLASIFICACION_CIP,
         Columna.CLASIFICACION_CPC,
         Columna.NUMERO_DE_PUBLICACION_INTERNACIONAL,
@@ -1205,8 +1206,8 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.SET,
         Columna.SOLICITANTE_S,
         Columna.TITULO,
-    ],
-    Seccion.SOLICITUDES_DE_PATENTE_INTERNACIONALES_CUYA_FASE_NACIONAL_SE_ABANDONO_DESISTIO_DESECHO_O_RETIRO: [
+    },
+    Seccion.SOLICITUDES_DE_PATENTE_INTERNACIONALES_CUYA_FASE_NACIONAL_SE_ABANDONO_DESISTIO_DESECHO_O_RETIRO: {
         Columna.CLASIFICACION_CIP,
         Columna.CLASIFICACION_CPC,
         Columna.NUMERO_DE_PUBLICACION_INTERNACIONAL,
@@ -1215,8 +1216,8 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.SET,
         Columna.SOLICITANTE_S,
         Columna.TITULO,
-    ],
-    Seccion.PATENTES_CADUCAS_POR_TERMINO_DE_VIGENCIA: [
+    },
+    Seccion.PATENTES_CADUCAS_POR_TERMINO_DE_VIGENCIA: {
         Columna.CLASIFICACION_CIP,
         Columna.NUMERO_DE_PUBLICACION_INTERNACIONAL,
         Columna.NUMERO_DE_SOLICITUD,
@@ -1226,32 +1227,8 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.TIPO_DE_DOCUMENTO,
         Columna.TITULAR,
         Columna.TITULO,
-    ],
-    Seccion.PATENTES_CADUCAS_POR_FALTA_DE_PAGO: [
-        Columna.CLASIFICACION_CIP,
-        Columna.CLASIFICACION_CPC,
-        Columna.NUMERO_DE_PUBLICACION_INTERNACIONAL,
-        Columna.NUMERO_DE_SOLICITUD,
-        Columna.NUMERO_DE_SOLICITUD_INTERNACIONAL,
-        Columna.OFICINA_NO_DE_PATENTE_Y_TIPO_DE_DOCUMENTO,
-        Columna.RESUMEN,
-        Columna.SET,
-        Columna.TIPO_DE_DOCUMENTO,
-        Columna.TITULAR,
-        Columna.TITULO,
-    ],
-    Seccion.REGISTROS_DE_MODELO_DE_UTILIDAD_CADUCOS_POR_TERMINO_DE_VIGENCIA: [
-        Columna.CLASIFICACION_CIP,
-        Columna.NUMERO_DE_PUBLICACION_INTERNACIONAL,
-        Columna.NUMERO_DE_SOLICITUD,
-        Columna.NUMERO_DE_SOLICITUD_INTERNACIONAL,
-        Columna.OFICINA_NO_DE_PATENTE_Y_TIPO_DE_DOCUMENTO,
-        Columna.RESUMEN,
-        Columna.TIPO_DE_DOCUMENTO,
-        Columna.TITULAR,
-        Columna.TITULO,
-    ],
-    Seccion.REGISTROS_DE_MODELO_DE_UTILIDAD_CADUCOS_POR_FALTA_DE_PAGO: [
+    },
+    Seccion.PATENTES_CADUCAS_POR_FALTA_DE_PAGO: {
         Columna.CLASIFICACION_CIP,
         Columna.CLASIFICACION_CPC,
         Columna.NUMERO_DE_PUBLICACION_INTERNACIONAL,
@@ -1263,8 +1240,32 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.TIPO_DE_DOCUMENTO,
         Columna.TITULAR,
         Columna.TITULO,
-    ],
-    Seccion.REGISTROS_DE_DISENO_INDUSTRIAL_CADUCOS_POR_TERMINO_DE_VIGENCIA: [
+    },
+    Seccion.REGISTROS_DE_MODELO_DE_UTILIDAD_CADUCOS_POR_TERMINO_DE_VIGENCIA: {
+        Columna.CLASIFICACION_CIP,
+        Columna.NUMERO_DE_PUBLICACION_INTERNACIONAL,
+        Columna.NUMERO_DE_SOLICITUD,
+        Columna.NUMERO_DE_SOLICITUD_INTERNACIONAL,
+        Columna.OFICINA_NO_DE_PATENTE_Y_TIPO_DE_DOCUMENTO,
+        Columna.RESUMEN,
+        Columna.TIPO_DE_DOCUMENTO,
+        Columna.TITULAR,
+        Columna.TITULO,
+    },
+    Seccion.REGISTROS_DE_MODELO_DE_UTILIDAD_CADUCOS_POR_FALTA_DE_PAGO: {
+        Columna.CLASIFICACION_CIP,
+        Columna.CLASIFICACION_CPC,
+        Columna.NUMERO_DE_PUBLICACION_INTERNACIONAL,
+        Columna.NUMERO_DE_SOLICITUD,
+        Columna.NUMERO_DE_SOLICITUD_INTERNACIONAL,
+        Columna.OFICINA_NO_DE_PATENTE_Y_TIPO_DE_DOCUMENTO,
+        Columna.RESUMEN,
+        Columna.SET,
+        Columna.TIPO_DE_DOCUMENTO,
+        Columna.TITULAR,
+        Columna.TITULO,
+    },
+    Seccion.REGISTROS_DE_DISENO_INDUSTRIAL_CADUCOS_POR_TERMINO_DE_VIGENCIA: {
         Columna.LOCARNO,
         Columna.NUMERO_DE_PUBLICACION_INTERNACIONAL,
         Columna.NUMERO_DE_SOLICITUD,
@@ -1274,8 +1275,8 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.TIPO_DE_DOCUMENTO,
         Columna.TITULAR,
         Columna.TITULO,
-    ],
-    Seccion.REGISTROS_DE_DISENO_INDUSTRIAL_CADUCOS_POR_FALTA_DE_PAGO: [
+    },
+    Seccion.REGISTROS_DE_DISENO_INDUSTRIAL_CADUCOS_POR_FALTA_DE_PAGO: {
         Columna.LOCARNO,
         Columna.NUMERO_DE_PUBLICACION_INTERNACIONAL,
         Columna.NUMERO_DE_SOLICITUD,
@@ -1285,8 +1286,8 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.TIPO_DE_DOCUMENTO,
         Columna.TITULAR,
         Columna.TITULO,
-    ],
-    Seccion.REGISTROS_DE_ESQUEMA_DE_TRAZADO_DE_CIRCUITOS_INTEGRADOS_CADUCOS_POR_TERMINO_DE_VIGENCIA: [
+    },
+    Seccion.REGISTROS_DE_ESQUEMA_DE_TRAZADO_DE_CIRCUITOS_INTEGRADOS_CADUCOS_POR_TERMINO_DE_VIGENCIA: {
         Columna.CLASIFICACION_CIP,
         Columna.NUMERO_DE_PUBLICACION_INTERNACIONAL,
         Columna.NUMERO_DE_SOLICITUD,
@@ -1296,8 +1297,8 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.TIPO_DE_DOCUMENTO,
         Columna.TITULAR,
         Columna.TITULO,
-    ],
-    Seccion.REGISTROS_DE_ESQUEMA_DE_TRAZADO_DE_CIRCUITOS_INTEGRADOS_CADUCOS_POR_FALTA_DE_PAGO: [
+    },
+    Seccion.REGISTROS_DE_ESQUEMA_DE_TRAZADO_DE_CIRCUITOS_INTEGRADOS_CADUCOS_POR_FALTA_DE_PAGO: {
         Columna.CLASIFICACION_CIP,
         Columna.NUMERO_DE_PUBLICACION_INTERNACIONAL,
         Columna.NUMERO_DE_SOLICITUD_INTERNACIONAL,
@@ -1306,312 +1307,312 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.TIPO_DE_DOCUMENTO,
         Columna.TITULAR,
         Columna.TITULO,
-    ],
-    Seccion.FE_DE_ERRATAS_10030: [
+    },
+    Seccion.FE_DE_ERRATAS_10030: {
         Columna.ERROR_CORREGIDO_2,
         Columna.FECHA_DE_PUESTA_EN_CIRCULACION,
         Columna.FICHA_PUBLICADA,
         Columna.GACETA,
-    ],
-    Seccion.SOLICITUDES_DE_MARCAS_11010: [
+    },
+    Seccion.SOLICITUDES_DE_MARCAS_11010: {
         Columna.DENOMINACION,
         Columna.EXPEDIENTE,
-    ],
-    Seccion.SOLICITUDES_DE_NOMBRES_COMERCIALES_11020: [
+    },
+    Seccion.SOLICITUDES_DE_NOMBRES_COMERCIALES_11020: {
         Columna.DENOMINACION,
         Columna.EXPEDIENTE,
-    ],
-    Seccion.SOLICITUDES_DE_AVISOS_COMERCIALES_11030: [
+    },
+    Seccion.SOLICITUDES_DE_AVISOS_COMERCIALES_11030: {
         Columna.DENOMINACION,
         Columna.EXPEDIENTE,
-    ],
-    Seccion.REGISTROS_DE_MARCAS: [
+    },
+    Seccion.REGISTROS_DE_MARCAS: {
         Columna.DENOMINACION,
         Columna.REGISTRO_DE_MARCA,
-    ],
-    Seccion.ORDENES_DE_PUBLICACION_DE_NOMBRES_COMERCIALES: [
+    },
+    Seccion.ORDENES_DE_PUBLICACION_DE_NOMBRES_COMERCIALES: {
         Columna.DENOMINACION,
         Columna.REGISTRO_DE_NOMBRE_COMERCIAL,
-    ],
-    Seccion.REGISTROS_DE_AVISOS_COMERCIALES: [
+    },
+    Seccion.REGISTROS_DE_AVISOS_COMERCIALES: {
         Columna.DENOMINACION,
         Columna.REGISTRO_DE_AVISO_COMERCIAL,
-    ],
-    Seccion.SOLICITUDES_DE_MARCAS_100177: [
+    },
+    Seccion.SOLICITUDES_DE_MARCAS_100177: {
         Columna.DENOMINACION,
         Columna.EXPEDIENTE,
         Columna.REGISTRO_DE_MARCA,
-    ],
-    Seccion.SOLICITUDES_DE_NOMBRES_COMERCIALES_100179: [
+    },
+    Seccion.SOLICITUDES_DE_NOMBRES_COMERCIALES_100179: {
         Columna.DENOMINACION,
         Columna.EXPEDIENTE,
         Columna.REGISTRO_DE_NOMBRE_COMERCIAL,
-    ],
-    Seccion.SOLICITUDES_DE_AVISOS_COMERCIALES_100181: [
+    },
+    Seccion.SOLICITUDES_DE_AVISOS_COMERCIALES_100181: {
         Columna.DENOMINACION,
         Columna.EXPEDIENTE,
         Columna.REGISTRO_DE_AVISO_COMERCIAL,
-    ],
-    Seccion.SOLICITUDES_DE_INSCRIPCION_DE_LICENCIA_DE_USO_O_FRANQUICIA: [
+    },
+    Seccion.SOLICITUDES_DE_INSCRIPCION_DE_LICENCIA_DE_USO_O_FRANQUICIA: {
         Columna.DENOMINACION,
         Columna.EXPEDIENTE,
-    ],
-    Seccion.SOLICITUDES_DE_MARCAS_100188: [
+    },
+    Seccion.SOLICITUDES_DE_MARCAS_100188: {
         Columna.CLASE,
         Columna.DENOMINACION,
         Columna.EXPEDIENTE,
         Columna.FECHA_DE_PRESENTACION,
-    ],
-    Seccion.SOLICITUDES_DE_AVISOS_COMERCIALES_100190: [
+    },
+    Seccion.SOLICITUDES_DE_AVISOS_COMERCIALES_100190: {
         Columna.CLASE,
         Columna.DENOMINACION,
         Columna.EXPEDIENTE,
         Columna.FECHA_DE_PRESENTACION,
-    ],
-    Seccion.SOLICITUDES_DE_NOMBRES_COMERCIALES_100192: [
+    },
+    Seccion.SOLICITUDES_DE_NOMBRES_COMERCIALES_100192: {
         Columna.CLASE,
         Columna.DENOMINACION,
         Columna.EXPEDIENTE,
         Columna.FECHA_DE_PRESENTACION,
-    ],
-    Seccion.ESCRITOS_DE_OPOSICIONES_A_SOLICITUDES_DE_AVISOS_COMERCIALES: [
+    },
+    Seccion.ESCRITOS_DE_OPOSICIONES_A_SOLICITUDES_DE_AVISOS_COMERCIALES: {
         Columna.EXPEDIENTE,
         Columna.FECHA_DE_PRESENTACION,
-    ],
-    Seccion.ESCRITOS_DE_OPOSICIONES_A_SOLICITUDES_DE_MARCAS: [
+    },
+    Seccion.ESCRITOS_DE_OPOSICIONES_A_SOLICITUDES_DE_MARCAS: {
         Columna.EXPEDIENTE,
         Columna.FECHA_DE_PRESENTACION,
-    ],
-    Seccion.ESCRITOS_DE_OPOSICIONES_A_SOLICITUDES_DE_NOMBRES_COMERCIALES: [
+    },
+    Seccion.ESCRITOS_DE_OPOSICIONES_A_SOLICITUDES_DE_NOMBRES_COMERCIALES: {
         Columna.EXPEDIENTE,
         Columna.FECHA_DE_PRESENTACION,
-    ],
-    Seccion.MARCAS_RENOVADAS_EN_EL_MES: [
+    },
+    Seccion.MARCAS_RENOVADAS_EN_EL_MES: {
         Columna.CLASE,
         Columna.DENOMINACION,
         Columna.REGISTRO_DE_MARCA,
         Columna.RESOLUCION,
-    ],
-    Seccion.PERMISO_DE_USO_AUTORIZADO_DE_MARCAS: [
+    },
+    Seccion.PERMISO_DE_USO_AUTORIZADO_DE_MARCAS: {
         Columna.DENOMINACION,
         Columna.LICENCIATARIO,
         Columna.REGISTRO_DE_MARCA,
         Columna.RESOLUCION,
-    ],
-    Seccion.TRANSMISIONES_O_ENAJENACIONES_DE_DERECHOS_DE_MARCAS: [
+    },
+    Seccion.TRANSMISIONES_O_ENAJENACIONES_DE_DERECHOS_DE_MARCAS: {
         Columna.DENOMINACION,
         Columna.REGISTRO_DE_MARCA,
         Columna.RESOLUCION,
         Columna.TITULAR,
-    ],
-    Seccion.CAMBIOS_DE_NOMBRE_JURIDICO_DE_TITULARES_DE_MARCAS: [
+    },
+    Seccion.CAMBIOS_DE_NOMBRE_JURIDICO_DE_TITULARES_DE_MARCAS: {
         Columna.DENOMINACION,
         Columna.NUEVO_TITULAR,
         Columna.REGISTRO_DE_MARCA,
         Columna.RESOLUCION,
-    ],
-    Seccion.CAMBIOS_DE_REGIMEN_JURIDICO_DE_TITULARES_DE_MARCAS: [
+    },
+    Seccion.CAMBIOS_DE_REGIMEN_JURIDICO_DE_TITULARES_DE_MARCAS: {
         Columna.DENOMINACION,
         Columna.NUEVO_TITULAR,
         Columna.REGISTRO_DE_MARCA,
-    ],
-    Seccion.CANCELACION_VOLUNTARIA_DE_REGISTROS_DE_MARCAS: [
+    },
+    Seccion.CANCELACION_VOLUNTARIA_DE_REGISTROS_DE_MARCAS: {
         Columna.APODERADO,
         Columna.DENOMINACION,
         Columna.REGISTRO_DE_MARCA,
         Columna.TITULAR,
-    ],
-    Seccion.LIMITACION_DE_PRODUCTOS_FAVORABLES_DE_MARCAS: [
+    },
+    Seccion.LIMITACION_DE_PRODUCTOS_FAVORABLES_DE_MARCAS: {
         Columna.CLASE,
         Columna.DENOMINACION,
         Columna.PRODUCTOS_Y_SERVICIOS,
         Columna.REGISTRO_DE_MARCA,
         Columna.TITULAR,
-    ],
-    Seccion.CAMBIOS_DE_UBICACION_DE_FABRICAS_O_ESTABLECIMIENTOS_RELACIONADOS_CON_MARCAS: [
+    },
+    Seccion.CAMBIOS_DE_UBICACION_DE_FABRICAS_O_ESTABLECIMIENTOS_RELACIONADOS_CON_MARCAS: {
         Columna.DENOMINACION,
         Columna.NUEVA_UBICACION,
         Columna.REGISTRO_DE_MARCA,
         Columna.RESOLUCION,
-    ],
-    Seccion.NUEVA_UBICACION_DE_FABRICAS_SUBSIDIARIAS: [
+    },
+    Seccion.NUEVA_UBICACION_DE_FABRICAS_SUBSIDIARIAS: {
         Columna.DENOMINACION,
         Columna.NUEVA_UBICACION,
         Columna.REGISTRO_DE_MARCA,
         Columna.RESOLUCION,
-    ],
-    Seccion.INSCRIPCION_DE_CAMBIO_EN_EL_NOMBRE_DEL_TITULAR: [
+    },
+    Seccion.INSCRIPCION_DE_CAMBIO_EN_EL_NOMBRE_DEL_TITULAR: {
         Columna.DENOMINACION,
         Columna.REGISTRO_INTERNACIONAL,
         Columna.REGISTROS_NACIONALES_RELACIONADOS_AL_REGISTRO_INTERNACIONAL,
         Columna.RESOLUCION,
         Columna.TITULAR,
-    ],
-    Seccion.INSCRIPCION_DE_UN_CAMBIO_EN_LA_TITULARIDAD_TOTAL: [
+    },
+    Seccion.INSCRIPCION_DE_UN_CAMBIO_EN_LA_TITULARIDAD_TOTAL: {
         Columna.DENOMINACION,
         Columna.REGISTRO_INTERNACIONAL,
         Columna.REGISTROS_NACIONALES_RELACIONADOS_AL_REGISTRO_INTERNACIONAL,
         Columna.RESOLUCION,
         Columna.TITULAR,
-    ],
-    Seccion.INSCRIPCION_DE_UN_CAMBIO_EN_LA_TITULARIDAD_PARCIAL: [
+    },
+    Seccion.INSCRIPCION_DE_UN_CAMBIO_EN_LA_TITULARIDAD_PARCIAL: {
         Columna.CLASE_S,
         Columna.DENOMINACION,
         Columna.REGISTRO_INTERNACIONAL,
         Columna.REGISTROS_NACIONALES_RELACIONADOS_AL_REGISTRO_INTERNACIONAL,
         Columna.RESOLUCION,
         Columna.TITULAR,
-    ],
-    Seccion.RENOVACION: [
+    },
+    Seccion.RENOVACION: {
         Columna.CLASE_S,
         Columna.DENOMINACION,
         Columna.REGISTRO_INTERNACIONAL,
         Columna.REGISTROS_NACIONALES_RELACIONADOS_AL_REGISTRO_INTERNACIONAL,
         Columna.RENOVADA_HASTA,
         Columna.RESOLUCION,
-    ],
-    Seccion.INSCRIPCION_DE_LIMITACION: [
+    },
+    Seccion.INSCRIPCION_DE_LIMITACION: {
         Columna.CLASE_S,
         Columna.DENOMINACION,
         Columna.PRODUCTOS_Y_SERVICIOS,
         Columna.REGISTRO_DE_MARCA_INTERNACIONAL,
         Columna.REGISTROS_NACIONALES_RELACIONADOS_AL_REGISTRO_INTERNACIONAL,
         Columna.TITULAR,
-    ],
-    Seccion.INSCRIPCION_DE_CANCELACION_TOTAL: [
+    },
+    Seccion.INSCRIPCION_DE_CANCELACION_TOTAL: {
         Columna.DENOMINACION,
         Columna.REGISTRO_DE_MARCA_INTERNACIONAL,
         Columna.REGISTROS_NACIONALES_RELACIONADOS_AL_REGISTRO_INTERNACIONAL,
         Columna.TITULAR,
-    ],
-    Seccion.INSCRIPCION_DE_CANCELACION_PARCIAL: [
+    },
+    Seccion.INSCRIPCION_DE_CANCELACION_PARCIAL: {
         Columna.CLASE_S,
         Columna.DENOMINACION,
         Columna.PRODUCTOS_Y_SERVICIOS,
         Columna.REGISTRO_DE_MARCA_INTERNACIONAL,
         Columna.REGISTROS_NACIONALES_RELACIONADOS_AL_REGISTRO_INTERNACIONAL,
         Columna.TITULAR,
-    ],
-    Seccion.RENUNCIA_REGISTROS_INTERNACIONALES: [
+    },
+    Seccion.RENUNCIA_REGISTROS_INTERNACIONALES: {
         Columna.DENOMINACION,
         Columna.REGISTRO_DE_MARCA_INTERNACIONAL,
         Columna.REGISTROS_NACIONALES_RELACIONADOS_AL_REGISTRO_INTERNACIONAL,
         Columna.TITULAR,
-    ],
-    Seccion.AVISOS_COMERCIALES_RENOVADOS_EN_EL_MES: [
+    },
+    Seccion.AVISOS_COMERCIALES_RENOVADOS_EN_EL_MES: {
         Columna.DENOMINACION,
         Columna.REGISTRO_DE_AVISO_COMERCIAL,
         Columna.RENOVADA_HASTA,
         Columna.RESOLUCION,
-    ],
-    Seccion.PERMISO_DE_USO_AUTORIZADO_DE_AVISOS_COMERCIALES: [
+    },
+    Seccion.PERMISO_DE_USO_AUTORIZADO_DE_AVISOS_COMERCIALES: {
         Columna.DENOMINACION,
         Columna.LICENCIATARIO,
         Columna.REGISTRO_DE_AVISO_COMERCIAL,
         Columna.RESOLUCION,
-    ],
-    Seccion.TRANSMISIONES_O_ENAJENACIONES_DE_AVISOS_COMERCIALES: [
+    },
+    Seccion.TRANSMISIONES_O_ENAJENACIONES_DE_AVISOS_COMERCIALES: {
         Columna.DENOMINACION,
         Columna.REGISTRO_DE_AVISO_COMERCIAL,
         Columna.RESOLUCION,
         Columna.TITULAR,
-    ],
-    Seccion.CAMBIOS_DE_NOMBRE_JURIDICO_DE_TITULARES_DE_AVISOS_COMERCIALES: [
+    },
+    Seccion.CAMBIOS_DE_NOMBRE_JURIDICO_DE_TITULARES_DE_AVISOS_COMERCIALES: {
         Columna.DENOMINACION,
         Columna.NUEVO_TITULAR,
         Columna.REGISTRO_DE_AVISO_COMERCIAL,
         Columna.RESOLUCION,
-    ],
-    Seccion.CAMBIOS_DE_REGIMEN_JURIDICO_DE_TITULARES_DE_AVISOS_COMERCIALES: [
+    },
+    Seccion.CAMBIOS_DE_REGIMEN_JURIDICO_DE_TITULARES_DE_AVISOS_COMERCIALES: {
         Columna.DENOMINACION,
         Columna.REGISTRO_DE_AVISO_COMERCIAL,
         Columna.TITULAR,
-    ],
-    Seccion.CANCELACION_VOLUNTARIA_DE_REGISTROS_DE_AVISOS_COMERCIALES: [
+    },
+    Seccion.CANCELACION_VOLUNTARIA_DE_REGISTROS_DE_AVISOS_COMERCIALES: {
         Columna.APODERADO,
         Columna.DENOMINACION,
         Columna.REGISTRO_DE_AVISO_COMERCIAL,
         Columna.TITULAR,
-    ],
-    Seccion.LIMITACION_DE_PRODUCTOS_FAVORABLES_DE_AVISOS_COMERCIALES: [
+    },
+    Seccion.LIMITACION_DE_PRODUCTOS_FAVORABLES_DE_AVISOS_COMERCIALES: {
         Columna.CLASE,
         Columna.DENOMINACION,
         Columna.PRODUCTOS_Y_SERVICIOS,
         Columna.REGISTRO_DE_AVISO_COMERCIAL,
         Columna.TITULAR,
-    ],
-    Seccion.CAMBIOS_DE_ESTABLECIMIENTOS_RELACIONADOS_CON_AVISOS_COMERCIALES: [
+    },
+    Seccion.CAMBIOS_DE_ESTABLECIMIENTOS_RELACIONADOS_CON_AVISOS_COMERCIALES: {
         Columna.DENOMINACION,
         Columna.NUEVA_UBICACION,
         Columna.REGISTRO_DE_AVISO_COMERCIAL,
         Columna.RESOLUCION,
-    ],
-    Seccion.NOMBRES_COMERCIALES_RENOVADOS_EN_EL_MES: [
+    },
+    Seccion.NOMBRES_COMERCIALES_RENOVADOS_EN_EL_MES: {
         Columna.DENOMINACION,
         Columna.REGISTRO_DE_NOMBRE_COMERCIAL,
         Columna.RENOVADA_HASTA,
         Columna.RESOLUCION,
-    ],
-    Seccion.PERMISO_DE_USO_AUTORIZADO_DE_NOMBRES_COMERCIALES: [
+    },
+    Seccion.PERMISO_DE_USO_AUTORIZADO_DE_NOMBRES_COMERCIALES: {
         Columna.DENOMINACION,
         Columna.LICENCIATARIO,
         Columna.REGISTRO_DE_NOMBRE_COMERCIAL,
         Columna.RESOLUCION,
-    ],
-    Seccion.TRANSMISIONES_O_ENAJENACIONES_DE_NOMBRES_COMERCIALES: [
+    },
+    Seccion.TRANSMISIONES_O_ENAJENACIONES_DE_NOMBRES_COMERCIALES: {
         Columna.DENOMINACION,
         Columna.REGISTRO_DE_NOMBRE_COMERCIAL,
         Columna.RESOLUCION,
         Columna.TITULAR,
-    ],
-    Seccion.CAMBIOS_DE_NOMBRE_JURIDICO_DE_TITULARES_DE_NOMBRES_COMERCIALES: [
+    },
+    Seccion.CAMBIOS_DE_NOMBRE_JURIDICO_DE_TITULARES_DE_NOMBRES_COMERCIALES: {
         Columna.DENOMINACION,
         Columna.NUEVO_TITULAR,
         Columna.REGISTRO_DE_NOMBRE_COMERCIAL,
         Columna.RESOLUCION,
-    ],
-    Seccion.CAMBIOS_DE_REGIMEN_JURIDICO_DE_TITULARES_DE_NOMBRES_COMERCIALES: [
+    },
+    Seccion.CAMBIOS_DE_REGIMEN_JURIDICO_DE_TITULARES_DE_NOMBRES_COMERCIALES: {
         Columna.DENOMINACION,
         Columna.REGISTRO_DE_NOMBRE_COMERCIAL,
         Columna.TITULAR,
-    ],
-    Seccion.CANCELACION_VOLUNTARIA_DE_REGISTROS_DE_NOMBRES_COMERCIALES: [
+    },
+    Seccion.CANCELACION_VOLUNTARIA_DE_REGISTROS_DE_NOMBRES_COMERCIALES: {
         Columna.APODERADO,
         Columna.DENOMINACION,
         Columna.REGISTRO_DE_NOMBRE_COMERCIAL,
         Columna.TITULAR,
-    ],
-    Seccion.CAMBIOS_DE_ESTABLECIMIENTOS_RELACIONADOS_CON_NOMBRES_COMERCIALES: [
+    },
+    Seccion.CAMBIOS_DE_ESTABLECIMIENTOS_RELACIONADOS_CON_NOMBRES_COMERCIALES: {
         Columna.DENOMINACION,
         Columna.NUEVA_UBICACION,
         Columna.REGISTRO_DE_NOMBRE_COMERCIAL,
         Columna.RESOLUCION,
-    ],
-    Seccion.AUTORIZACION_DE_USO_DE_LA_DENOMINACION_DE_ORIGEN_TEQUILA: [
+    },
+    Seccion.AUTORIZACION_DE_USO_DE_LA_DENOMINACION_DE_ORIGEN_TEQUILA: {
         Columna.AUTORIZACION,
         Columna.USUARIO_AUTORIZADO,
-    ],
-    Seccion.AUTORIZACION_DE_USO_DE_LA_DENOMINACION_DE_ORIGEN_MEZCAL: [
+    },
+    Seccion.AUTORIZACION_DE_USO_DE_LA_DENOMINACION_DE_ORIGEN_MEZCAL: {
         Columna.AUTORIZACION,
         Columna.USUARIO_AUTORIZADO,
-    ],
-    Seccion.AUTORIZACION_DE_USO_DE_LA_DENOMINACION_DE_ORIGEN_BACANORA: [
+    },
+    Seccion.AUTORIZACION_DE_USO_DE_LA_DENOMINACION_DE_ORIGEN_BACANORA: {
         Columna.AUTORIZACION,
         Columna.USUARIO_AUTORIZADO,
-    ],
-    Seccion.AUTORIZACION_DE_USO_DE_LA_DENOMINACION_DE_ORIGEN_CAFE_VERACRUZ: [
+    },
+    Seccion.AUTORIZACION_DE_USO_DE_LA_DENOMINACION_DE_ORIGEN_CAFE_VERACRUZ: {
         Columna.AUTORIZACION,
         Columna.USUARIO_AUTORIZADO,
-    ],
-    Seccion.AUTORIZACION_DE_USO_DE_LA_DENOMINACION_DE_ORIGEN_AMBAR_DE_CHIAPAS: [
+    },
+    Seccion.AUTORIZACION_DE_USO_DE_LA_DENOMINACION_DE_ORIGEN_AMBAR_DE_CHIAPAS: {
         Columna.AUTORIZACION,
         Columna.USUARIO_AUTORIZADO,
-    ],
-    Seccion.AUTORIZACION_DE_USO_DE_LA_DENOMINACION_DE_ORIGEN_TALAVERA: [
+    },
+    Seccion.AUTORIZACION_DE_USO_DE_LA_DENOMINACION_DE_ORIGEN_TALAVERA: {
         Columna.AUTORIZACION,
         Columna.USUARIO_AUTORIZADO,
-    ],
-    Seccion.PROMOCIONES_DE_PATENTES_RELACIONADAS_CON_INVENCIONES_QUE_NO_SON_SUSCEPTIBLES_DE_SER_EMPLEADAS_EN_MEDICAMENTOS_ALOPATICOS: [
+    },
+    Seccion.PROMOCIONES_DE_PATENTES_RELACIONADAS_CON_INVENCIONES_QUE_NO_SON_SUSCEPTIBLES_DE_SER_EMPLEADAS_EN_MEDICAMENTOS_ALOPATICOS: {
         Columna.CATEGORIA,
         Columna.DENOMINACION_GENERICA,
         Columna.DICTAMEN,
@@ -1622,8 +1623,8 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.REIVINDICACIONES,
         Columna.SOLICITANTE_S,
         Columna.TITULAR_ES,
-    ],
-    Seccion.PROMOCIONES_RELACIONADAS_A_PATENTES_QUE_NO_PROTEGEN_LA_MATERIA_INDICADA_EN_LA_PETICION_RESPECTIVA: [
+    },
+    Seccion.PROMOCIONES_RELACIONADAS_A_PATENTES_QUE_NO_PROTEGEN_LA_MATERIA_INDICADA_EN_LA_PETICION_RESPECTIVA: {
         Columna.CATEGORIA,
         Columna.DENOMINACION_GENERICA,
         Columna.DICTAMEN,
@@ -1634,8 +1635,8 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.REIVINDICACIONES,
         Columna.SOLICITANTE_S,
         Columna.TITULAR_ES,
-    ],
-    Seccion.SOLICITUDES_RELACIONADAS_A_PATENTES_QUE_NO_PROTEGEN_UN_MEDICAMENTO_ALOPATICO: [
+    },
+    Seccion.SOLICITUDES_RELACIONADAS_A_PATENTES_QUE_NO_PROTEGEN_UN_MEDICAMENTO_ALOPATICO: {
         Columna.CATEGORIA,
         Columna.DENOMINACION_GENERICA,
         Columna.DICTAMEN,
@@ -1645,8 +1646,8 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.REIVINDICACIONES,
         Columna.SOLICITANTE_S,
         Columna.TITULAR,
-    ],
-    Seccion.SOLICITUDES_RELACIONADAS_A_PATENTES_QUE_NO_PROTEGEN_LA_MATERIA_INDICADA_EN_LA_PETICION_RESPECTIVA: [
+    },
+    Seccion.SOLICITUDES_RELACIONADAS_A_PATENTES_QUE_NO_PROTEGEN_LA_MATERIA_INDICADA_EN_LA_PETICION_RESPECTIVA: {
         Columna.DENOMINACION_GENERICA,
         Columna.DICTAMEN,
         Columna.FECHA_DE_PETICION,
@@ -1655,94 +1656,305 @@ SECCION_COLUMNAS: dict[Seccion, list[Columna]] = {
         Columna.REIVINDICACIONES,
         Columna.SOLICITANTE_S,
         Columna.TITULAR,
-    ],
-    Seccion.NOTIFICACIONES_DE_MARCAS: [
+    },
+    Seccion.NOTIFICACIONES_DE_MARCAS: {
         Columna.EXPEDIENTE,
         Columna.REGISTRO_DE_MARCA,
         Columna.SERIE_DEL_EXPEDIENTE,
-    ],
-    Seccion.NOTIFICACIONES_DE_AVISOS_COMERCIALES: [
+    },
+    Seccion.NOTIFICACIONES_DE_AVISOS_COMERCIALES: {
         Columna.EXPEDIENTE,
         Columna.REGISTRO_DE_AVISO_COMERCIAL,
         Columna.SERIE_DEL_EXPEDIENTE,
-    ],
-    Seccion.NOTIFICACIONES_DE_NOMBRES_COMERCIALES: [
+    },
+    Seccion.NOTIFICACIONES_DE_NOMBRES_COMERCIALES: {
         Columna.EXPEDIENTE,
         Columna.REGISTRO_DE_NOMBRE_COMERCIAL,
         Columna.SERIE_DEL_EXPEDIENTE,
-    ],
-    Seccion.SOLICITUDES_DE_PATENTES: [
+    },
+    Seccion.SOLICITUDES_DE_PATENTES: {
         Columna.EXPEDIENTE,
         Columna.NUMERO_DEL_OFICIO,
-    ],
-    Seccion.SOLICITUDES_DE_REGISTROS_DE_MODELOS_DE_UTILIDAD: [
+    },
+    Seccion.SOLICITUDES_DE_REGISTROS_DE_MODELOS_DE_UTILIDAD: {
         Columna.EXPEDIENTE,
         Columna.NUMERO_DEL_OFICIO,
-    ],
-    Seccion.SOLICITUDES_DE_REGISTROS_DE_DISENOS_INDUSTRIALES: [
+    },
+    Seccion.SOLICITUDES_DE_REGISTROS_DE_DISENOS_INDUSTRIALES: {
         Columna.EXPEDIENTE,
         Columna.NUMERO_DEL_OFICIO,
-    ],
-    Seccion.PATENTES_100293: [
-        Columna.EXPEDIENTE,
-        Columna.NUMERO_DE_CONCESION,
-        Columna.NUMERO_DEL_OFICIO,
-    ],
-    Seccion.REGISTROS_DE_MODELOS_DE_UTILIDAD_100294: [
+    },
+    Seccion.PATENTES_100293: {
         Columna.EXPEDIENTE,
         Columna.NUMERO_DE_CONCESION,
         Columna.NUMERO_DEL_OFICIO,
-    ],
-    Seccion.REGISTROS_DE_DISENOS_INDUSTRIALES: [
+    },
+    Seccion.REGISTROS_DE_MODELOS_DE_UTILIDAD_100294: {
         Columna.EXPEDIENTE,
         Columna.NUMERO_DE_CONCESION,
         Columna.NUMERO_DEL_OFICIO,
-    ],
-    Seccion.REGISTROS_DE_ESQUEMAS_DE_TRAZADO_DE_CIRCUITOS_INTEGRADOS: [
+    },
+    Seccion.REGISTROS_DE_DISENOS_INDUSTRIALES: {
         Columna.EXPEDIENTE,
         Columna.NUMERO_DE_CONCESION,
         Columna.NUMERO_DEL_OFICIO,
-    ],
-    Seccion.MODELOS_Y_DIBUJOS: [
+    },
+    Seccion.REGISTROS_DE_ESQUEMAS_DE_TRAZADO_DE_CIRCUITOS_INTEGRADOS: {
+        Columna.EXPEDIENTE,
+        Columna.NUMERO_DE_CONCESION,
+        Columna.NUMERO_DEL_OFICIO,
+    },
+    Seccion.MODELOS_Y_DIBUJOS: {
         Columna.NO_DE_REGISTRO,
         Columna.TITULO,
-    ],
-    Seccion.EMITIDAS_POR_LA_SUBDIRECCION_DIVISIONAL_DE_PROCESOS_DE_PROPIEDAD_INDUSTRIAL_100336: [
+    },
+    Seccion.EMITIDAS_POR_LA_SUBDIRECCION_DIVISIONAL_DE_PROCESOS_DE_PROPIEDAD_INDUSTRIAL_100336: {
         Columna.ACTOR,
         Columna.DEMANDADO,
         Columna.EXPEDIENTE,
         Columna.FOLIO_SALIDA,
-    ],
-    Seccion.EMITIDAS_POR_LA_SUBDIRECCION_DIVISIONAL_DE_CUMPLIMIENTO_DE_EJECUTORIA_100337: [
+    },
+    Seccion.EMITIDAS_POR_LA_SUBDIRECCION_DIVISIONAL_DE_CUMPLIMIENTO_DE_EJECUTORIA_100337: {
         Columna.ACTOR,
         Columna.DEMANDADO,
         Columna.EXPEDIENTE,
         Columna.FOLIO_SALIDA,
-    ],
-    Seccion.EMITIDAS_POR_LA_SUBDIRECCION_DIVISIONAL_DE_INFRACCIONES_ADMINISTRATIVAS_EN_MATERIA_DE_COMERCIO_100338: [
+    },
+    Seccion.EMITIDAS_POR_LA_SUBDIRECCION_DIVISIONAL_DE_INFRACCIONES_ADMINISTRATIVAS_EN_MATERIA_DE_COMERCIO_100338: {
         Columna.ACTOR,
         Columna.DEMANDADO,
         Columna.EXPEDIENTE,
         Columna.FOLIO_SALIDA,
-    ],
-    Seccion.EMITIDAS_POR_LA_SUBDIRECCION_DIVISIONAL_DE_PREVENCION_DE_LA_COMPETENCIA_DESLEAL_100339: [
+    },
+    Seccion.EMITIDAS_POR_LA_SUBDIRECCION_DIVISIONAL_DE_PREVENCION_DE_LA_COMPETENCIA_DESLEAL_100339: {
         Columna.ACTOR,
         Columna.DEMANDADO,
         Columna.EXPEDIENTE,
         Columna.FOLIO_SALIDA,
-    ],
-    Seccion.RECURSOS_DE_REVISION_100340: [
+    },
+    Seccion.RECURSOS_DE_REVISION_100340: {
         Columna.EXPEDIENTE,
         Columna.FOLIO_SALIDA,
         Columna.RECURRENTE,
-    ],
-    Seccion.EMITIDAS_POR_LA_SUBDIRECCION_DIVISIONAL_DE_MARCAS_NOTORIAS_INVESTIGACION_CONTROL_Y_PROCESAMIENTO_DE_DOCUMENTOS: [
+    },
+    Seccion.EMITIDAS_POR_LA_SUBDIRECCION_DIVISIONAL_DE_MARCAS_NOTORIAS_INVESTIGACION_CONTROL_Y_PROCESAMIENTO_DE_DOCUMENTOS: {
         Columna.ACTOR,
         Columna.DEMANDADO,
         Columna.EXPEDIENTE,
         Columna.FOLIO_SALIDA,
-    ],
+    },
 }
+
+# FIXME: comment out hardcode and make the dict auto-generated
+GACETA_COLUMNAS: dict[Gaceta, set[Columna]] = {
+    Gaceta.MARCAS_REGISTRADAS_AVISOS_Y_NOMBRES_COMERCIALES: {
+        Columna.PRODUCTOS_Y_SERVICIOS,
+        Columna.REGISTRO_DE_MARCA,
+        Columna.DEBE_DECIR,
+        Columna.REGISTRO_DE_AVISO_COMERCIAL,
+        Columna.DATOS_DEL_TITULAR,
+        Columna.REGISTRO_DE_NOMBRE_COMERCIAL,
+        Columna.DENOMINACION,
+        Columna.EXPEDIENTE,
+        Columna.DICE,
+        Columna.CLASE,
+        Columna.FECHA_DE_CONCESION,
+        Columna.ERROR_CORREGIDO,
+        Columna.FECHA_DE_PRESENTACION,
+    },
+    Gaceta.SOLICITUDES_DE_PATENTE_DE_REGISTROS_DE_MODELO_DE_UTILIDAD_Y_DE_DISENOS_INDUSTRIALES: {
+        Columna.SOLICITANTE_S,
+        Columna.CLASIFICACION_CPC,
+        Columna.FECHA_DE_BOLETIN,
+        Columna.NUMERO_DE_SOLICITUD,
+        Columna.ERROR_CORREGIDO_2,
+        Columna.INVENTOR_ES,
+        Columna.LOCARNO,
+        Columna.FECHA_DE_REGISTRO_INTERNACIONAL,
+        Columna.TITULAR_ES,
+        Columna.FECHA_DE_PRESENTACION_INTERNACIONAL,
+        Columna.FECHA_DE_PRESENTACION_2,
+        Columna.CLASIFICACION_CIP,
+        Columna.PRIORIDAD_ES,
+        Columna.TITULO,
+        Columna.NUMERO_DE_REGISTRO_INTERNACIONAL,
+        Columna.RESUMEN,
+        Columna.AGENTE,
+        Columna.NUMERO_DE_PUBLICACION_INTERNACIONAL,
+        Columna.SET,
+        Columna.NUMERO_DE_SOLICITUD_INTERNACIONAL,
+    },
+    Gaceta.PATENTES_REGISTROS_DE_MODELOS_DE_UTILIDAD_Y_DE_DISENOS_INDUSTRIALES: {
+        Columna.FECHA_DE_PUBLICACION,
+        Columna.NUMERO_DE_SOLICITUD,
+        Columna.ERROR_CORREGIDO_2,
+        Columna.NUEVO_TITULAR,
+        Columna.INVENTOR_ES,
+        Columna.LOCARNO,
+        Columna.FECHA_DE_PRESENTACION_INTERNACIONAL,
+        Columna.OFICINA_QUE_ATRIBUYE_LA_PRIORIDAD,
+        Columna.FECHA_DE_PRESENTACION_2,
+        Columna.CLASIFICACION_CIP,
+        Columna.RESUMEN,
+        Columna.AGENTE,
+        Columna.NUMERO_DE_PUBLICACION_INTERNACIONAL,
+        Columna.SET,
+        Columna.NUMERO_DE_CONCESION,
+        Columna.FECHA_DE_PUBLICACION_INTERNACIONAL,
+        Columna.TITULAR,
+        Columna.FECHA_DE_LA_SOLICITUD_PRIORITARIA,
+        Columna.OFICINA_NO_DE_PATENTE_Y_TIPO_DE_DOCUMENTO,
+        Columna.PRIORIDAD_ES,
+        Columna.FECHA_DE_CONCESION_2,
+        Columna.TITULO,
+        Columna.NUMERO_DE_REGISTRO_INTERNACIONAL,
+        Columna.AGENTE_NACIONAL,
+        Columna.NO_RESOLUCION,
+        Columna.NUMERO_DE_SOLICITUD_INTERNACIONAL,
+    },
+    Gaceta.PUBLICACION_DE_RESOLUCIONES_ANEXOS_Y_FE_DE_ERRATAS_MENSUALMENTE: {
+        Columna.RECURRENTE,
+        Columna.ACTO,
+        Columna.DEMANDADO,
+        Columna.SENTIDO,
+        Columna.EXPEDIENTE,
+        Columna.FOLIO_SALIDA,
+    },
+    Gaceta.LICENCIAS_TRANSMISIONES_Y_CAMBIOS_EN_SOLICITUDES_PATENTES_Y_REGISTROS: {
+        Columna.TITULAR,
+        Columna.FECHA_DE_RESOLUCION,
+        Columna.NUMERO_DE_SOLICITUD,
+        Columna.NUEVO_TITULAR,
+        Columna.SUBLICENCIATARIO,
+        Columna.NO_RESOLUCION,
+        Columna.NUMERO_DE_CONCESION,
+    },
+    Gaceta.PATENTES_VIGENTES_SUSCEPTIBLES_DE_SER_EMPLEADAS_EN_MEDICAMENTOS_ALOPATICOS_ART_162_LFPPI: {
+        Columna.PATENTE,
+        Columna.TITULAR,
+        Columna.DENOMINACION_O_TITULO_DE_LA_INVENCION,
+        Columna.NOMBRE_GENERICO,
+        Columna.OBSERVACIONES,
+        Columna.TIPO_DE_PATENTE,
+        Columna.DESCRIPCION_ESPECIFICA,
+        Columna.CATEGORIA_DE_PROTECCION,
+        Columna.REIVINDICACIONES,
+        Columna.SITUACION_JURIDICA,
+        Columna.MANDATO_JUDICIAL,
+        Columna.VIGENCIA,
+        Columna.DENOMINACION_GENERICA_O_NOMBRE_RECONOCIDO_INTERNACIONALMENTE,
+        Columna.NOMBRE_QUIMICO,
+        Columna.ANUALIDADES,
+        Columna.LICENCIAS,
+        Columna.NUMERO_DE_CONCESION,
+    },
+    Gaceta.SOLICITUDES_DE_MARCAS_NOMBRES_COMERCIALES_Y_AVISOS_COMERCIALES_ABANDONADAS: {
+        Columna.DENOMINACION,
+    },
+    Gaceta.REQUISITOS_DE_EXAMEN_DE_FORMA_Y_FONDO_ABANDONOS_DE_SOLICITUDES_DE_PATENTES_Y_REGISTROS: {
+        Columna.TITULAR,
+        Columna.NUMERO_DEL_OFICIO,
+        Columna.NOMBRE_DE_SOLICITANTE_S,
+        Columna.NUMERO_DE_SOLICITUD,
+        Columna.INVENTOR_ES,
+        Columna.NOMBRE_DE_INVENTOR_ES,
+        Columna.FECHA_DE_PRESENTACION_2,
+        Columna.FECHA_DE_CONCESION_2,
+        Columna.NUMERO_DE_EXPEDIENTE,
+        Columna.TITULO,
+        Columna.RESUMEN,
+        Columna.AGENTE,
+        Columna.NACIONALIDAD_INVENTOR,
+        Columna.SERIE_DEL_EXPEDIENTE,
+        Columna.NUMERO_DE_CONCESION,
+    },
+    Gaceta.INVENCIONES_DE_DOMINIO_PUBLICO_Y_SOLICITUDES_DE_USO_LIBRE: {
+        Columna.CLASIFICACION_CPC,
+        Columna.TITULAR,
+        Columna.FECHA_DE_PUESTA_EN_CIRCULACION,
+        Columna.NUMERO_DE_SOLICITUD,
+        Columna.ERROR_CORREGIDO_2,
+        Columna.LOCARNO,
+        Columna.OFICINA_NO_DE_PATENTE_Y_TIPO_DE_DOCUMENTO,
+        Columna.GACETA,
+        Columna.CLASIFICACION_CIP,
+        Columna.TITULO,
+        Columna.RESUMEN,
+        Columna.NUMERO_DE_PUBLICACION_INTERNACIONAL,
+        Columna.SET,
+        Columna.NUMERO_DE_SOLICITUD_INTERNACIONAL,
+        Columna.FICHA_PUBLICADA,
+        Columna.TIPO_DE_DOCUMENTO,
+    },
+    Gaceta.OFICIOS_REFERENTES_A_SIGNOS_DISTINTIVOS: {
+        Columna.REGISTRO_DE_MARCA,
+        Columna.REGISTRO_DE_AVISO_COMERCIAL,
+        Columna.REGISTRO_DE_NOMBRE_COMERCIAL,
+        Columna.DENOMINACION,
+    },
+    Gaceta.SOLICITUDES_DE_MARCAS_AVISOS_Y_NOMBRES_COMERCIALES_PRESENTADAS_ANTE_EL_INSTITUTO: {
+        Columna.EXPEDIENTE,
+        Columna.CLASE,
+        Columna.FECHA_DE_PRESENTACION,
+    },
+    Gaceta.OPOSICION_A_SOLICITUDES_DE_MARCAS_AVISOS_Y_NOMBRES_COMERCIALES: {
+        Columna.FECHA_DE_PRESENTACION,
+    },
+    Gaceta.CONSERVACION_DE_LOS_DERECHOS: {
+        Columna.NUEVA_UBICACION,
+        Columna.LICENCIATARIO,
+        Columna.TITULAR,
+        Columna.REGISTROS_NACIONALES_RELACIONADOS_AL_REGISTRO_INTERNACIONAL,
+        Columna.REGISTRO_DE_AVISO_COMERCIAL,
+        Columna.NUEVO_TITULAR,
+        Columna.REGISTRO_DE_NOMBRE_COMERCIAL,
+        Columna.DENOMINACION,
+        Columna.CLASE,
+        Columna.RESOLUCION,
+        Columna.RENOVADA_HASTA,
+        Columna.AUTORIZACION,
+        Columna.APODERADO,
+        Columna.REGISTRO_DE_MARCA_INTERNACIONAL,
+        Columna.REGISTRO_DE_MARCA,
+        Columna.CLASE_S,
+        Columna.USUARIO_AUTORIZADO,
+        Columna.REGISTRO_INTERNACIONAL,
+    },
+    Gaceta.PATENTES_VIGENTES_QUE_INCUMPLEN_LO_DISPUESTO_EN_EL_ART_162_LFPPI: {
+        Columna.PATENTE,
+        Columna.TITULAR,
+        Columna.OBSERVACIONES,
+        Columna.DENOMINACION_GENERICA,
+        Columna.PROMOCION,
+        Columna.DICTAMEN,
+        Columna.FECHA_DE_PETICION,
+        Columna.TITULAR_ES,
+        Columna.REIVINDICACIONES,
+        Columna.CATEGORIA,
+        Columna.PETICION,
+        Columna.NUMERO_DE_CONCESION,
+    },
+    Gaceta.NOTIFICACION_DE_RESOLUCIONES_REQUERIMIENTOS_Y_DEMAS_ACTOS: {
+        Columna.REGISTRO_DE_MARCA,
+        Columna.REGISTRO_DE_AVISO_COMERCIAL,
+        Columna.SERIE_DEL_EXPEDIENTE,
+        Columna.REGISTRO_DE_NOMBRE_COMERCIAL,
+    },
+    Gaceta.NOTIFICACIONES_DE_LA_DIRECCION_DIVISIONAL_DE_PATENTES: {
+        Columna.NUMERO_DEL_OFICIO,
+        Columna.NUMERO_DE_CONCESION,
+    },
+    Gaceta.RENOVACIONES_DE_DISENOS_INDUSTRIALES: {
+        Columna.NO_DE_REGISTRO,
+    },
+    Gaceta.PUBLICACION_DE_ACUERDOS_DIARIAMENTE: {
+        Columna.RECURRENTE,
+        Columna.DEMANDADO,
+        Columna.EXPEDIENTE,
+        Columna.FOLIO_SALIDA,
+    },
+}
+
 
 
 class Dato:
