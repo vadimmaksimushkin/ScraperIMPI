@@ -5,9 +5,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 from enum import Enum, auto
-
 import aiohttp
 import orjson
+from constants import RequestMethods
 
 log = logging.getLogger("siga.search")
 logging.basicConfig(
@@ -37,16 +37,6 @@ RESULTS_DIR = Path(__file__).parent / "Results"
 CAP = 15000                 # server hard cap; a page of CAP means it was truncated
 DEFAULT_YEARS_BACK = 20     # how far the pinned lower bound reaches
 DEFAULT_DELAY_SECONDS = 2.0  # politeness delay between pages (per-IP rate limiting)
-
-
-class RequestMethods(Enum):
-    GET = auto()
-    HEAD = auto()
-    POST = auto()
-    PUT = auto()
-    DELETE = auto()
-    OPTIONS = auto()
-    PATCH = auto()
 
 
 @dataclass

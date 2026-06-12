@@ -11,7 +11,21 @@ from base_search import (
     RequestMethods,
     request_with_token,
 )
-from copies_search import Area, Gaceta
+from constants import (
+    Area,
+    Gaceta,
+    Seccion,
+    Operador,
+    Kind,
+    Columna,
+    Dato,
+    SECCION_COLUMNAS,
+    SOLICITUDES_DE_AVISOS_COMERCIALES_100190,
+    SOLICITUDES_DE_MARCAS_100188,
+    SOLICITUDES_DE_NOMBRES_COMERCIALES_100192,
+    CLASE,
+    DENOMINACION,
+)
 
 log = logging.getLogger("siga.search")
 logging.basicConfig(
@@ -85,34 +99,6 @@ test_payload_v3: dict[str, Any] = {
 }
 
 
-class Seccion(Enum):
-    def __init__(self, id_seccion: int, gaceta: Gaceta):
-        self.id_seccion = id_seccion
-        self.gaceta = gaceta
-
-    SOLICITUDES_DE_MARCAS                   = (100188, Gaceta.SOLICITUDES_DE_MARCAS_AVISOS_Y_NOMBRES_COMERCIALES_PRESENTADAS_ANTE_EL_INSTITUTO)
-    SOLICITUDES_DE_AVISOS_COMERCIALES       = (100190, Gaceta.SOLICITUDES_DE_MARCAS_AVISOS_Y_NOMBRES_COMERCIALES_PRESENTADAS_ANTE_EL_INSTITUTO)
-    SOLICITUDES_DE_NOMBRES_COMERCIALES      = (100192, Gaceta.SOLICITUDES_DE_MARCAS_AVISOS_Y_NOMBRES_COMERCIALES_PRESENTADAS_ANTE_EL_INSTITUTO)
-
-
-class Operador(Enum):
-    AND = "AND"
-    OR = "OR"
-    NOT = "NOT"
-    EMPTY = ""
-
-
-class Columna(Enum):
-    CLASE = "Clase"
-    CLASE_S = "Clase (s)"
-
-
-@dataclass
-class Dato:
-    operador: Operador
-    columna: Columna
-    valor: str
-    fecha: str = ""
 
 
 def build_payload(
@@ -134,7 +120,15 @@ def build_payload(
         "idArea": str(area.value) if area else "",
         "idGaceta": [gaceta.id_gaceta for gaceta in gacetas] if gacetas else [],
         "idSeccion": [seccion.id_seccion for seccion in secciones] if secciones else [],
-        "datos": [dato.__dict__ for dato in datos], # FIXME: check that dataclass returns dict
+        "datos": [
+            {
+                "operador": dato.operador.value,
+                "columna": dato.columna.nombre,
+                "valor": dato.valor,
+                "fecha": dato.fecha,
+            }
+            for dato in datos
+        ],
         "FechaDesde": fecha_desde.strftime("%d-%m-%Y") if fecha_desde else "",
         "FechaHasta": fecha_hasta.strftime("%d-%m-%Y") if fecha_hasta else "",
         "reCaptchaToken": recaptcha,
@@ -177,20 +171,23 @@ if __name__ == "__main__":
             Gaceta.SOLICITUDES_DE_MARCAS_AVISOS_Y_NOMBRES_COMERCIALES_PRESENTADAS_ANTE_EL_INSTITUTO,
         ]
         secciones = [
-            Seccion.SOLICITUDES_DE_AVISOS_COMERCIALES,
-            Seccion.SOLICITUDES_DE_MARCAS,
-            Seccion.SOLICITUDES_DE_NOMBRES_COMERCIALES,
+            SOLICITUDES_DE_AVISOS_COMERCIALES_100190,
+            SOLICITUDES_DE_MARCAS_100188,
+            SOLICITUDES_DE_NOMBRES_COMERCIALES_100192,
+            # Seccion.SOLICITUDES_DE_AVISOS_COMERCIALES,
+            # Seccion.SOLICITUDES_DE_MARCAS,
+            # Seccion.SOLICITUDES_DE_NOMBRES_COMERCIALES,
         ]
         datos = [
             Dato(
                 operador=Operador.EMPTY,
-                columna=Columna.CLASE,
+                columna=CLASE,
                 valor="42",
             ),
             Dato(
                 operador=Operador.OR,
-                columna=Columna.CLASE_S,
-                valor="40"
+                columna=DENOMINACION,
+                valor="ZESTO"
             ),
         ]
         fecha_desde = date(2026, 1, 1)

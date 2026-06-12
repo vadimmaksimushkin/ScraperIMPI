@@ -9,7 +9,7 @@ from base_search import (
     RequestMethods,
     request_with_token,
 )
-from copies_search import Area, Gaceta
+from constants import Area, Gaceta
 
 log = logging.getLogger("siga.search")
 logging.basicConfig(
