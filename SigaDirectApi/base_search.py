@@ -4,7 +4,6 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-from enum import Enum, auto
 import aiohttp
 import orjson
 from constants import RequestMethods
