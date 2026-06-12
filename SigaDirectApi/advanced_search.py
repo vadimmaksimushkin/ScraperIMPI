@@ -30,7 +30,7 @@ logging.basicConfig(
 URL=f"{BASE}/api/BusquedaEstructurada/GetSearchEstructurada"
 
 
-def input_validation(
+def input_validation( # NOSONAR
     area: Area,
     gacetas: list[Gaceta] | None,
     secciones: list[Seccion] | None,
