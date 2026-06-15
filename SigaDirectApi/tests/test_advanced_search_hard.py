@@ -359,7 +359,7 @@ def test_search_invalid_raises_before_request(monkeypatch) -> None:
 
 
 # ===========================================================================
-# INTENDED behaviour — currently FAILS / ERRORS.
+# INTENDED behaviour — now enforced.
 # ===========================================================================
 @pytest.mark.parametrize(
     "desde, hasta",
@@ -369,23 +369,24 @@ def test_search_invalid_raises_before_request(monkeypatch) -> None:
     ],
     ids=["both-datetime", "date-and-datetime"],
 )
-def test_datetime_for_fecha_rejected_cleanly(desde, hasta) -> None:
-    # datetime subclasses date, slips past isinstance(..., date), then
-    # `fecha_hasta > date.today()` raises TypeError instead of (False, msg).
+def test_datetime_for_fecha_normalized_cleanly(desde, hasta) -> None:
+    # datetime subclasses date; it's floored to its date instead of raising a
+    # TypeError on the `> mexico_today()` compare, so a past datetime validates.
     ok, _ = validate(fecha_desde=desde, fecha_hasta=hasta)
-    assert ok is False
+    assert ok is True
 
 
-def test_build_datetime_raises_value_error() -> None:
-    with pytest.raises(ValueError):
-        build_payload(
-            area=AREA,
-            gacetas=[GACETA],
-            secciones=[SECCION],
-            datos=[DATO_CLASE],
-            fecha_desde=datetime(2020, 1, 1),  # type: ignore[arg-type]
-            fecha_hasta=datetime(2020, 1, 1),  # type: ignore[arg-type]
-        )
+def test_build_datetime_normalized_to_date() -> None:
+    # A datetime is floored to its date; build_payload serializes the date part.
+    payload = build_payload(
+        area=AREA,
+        gacetas=[GACETA],
+        secciones=[SECCION],
+        datos=[DATO_CLASE],
+        fecha_desde=datetime(2020, 1, 1),  # type: ignore[arg-type]
+        fecha_hasta=datetime(2020, 1, 1),  # type: ignore[arg-type]
+    )
+    assert payload["FechaDesde"] == payload["FechaHasta"] == "01-01-2020"
 
 
 def test_seccion_missing_from_map_rejects_cleanly(monkeypatch) -> None:

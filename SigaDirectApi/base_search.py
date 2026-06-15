@@ -70,7 +70,14 @@ async def fetch_token_pair(session: aiohttp.ClientSession) -> TokenPair:
         elif cookie.key == XSRF_COOKIE_NAME:
             request_token = cookie.value
 
-    if not antiforgery or not request_token:
+    # both values must be present AND non-blank (a 2-tuple is always truthy, and a
+    # whitespace-only token is not a real token)
+    if (
+        not antiforgery
+        or not antiforgery[1].strip()
+        or not request_token
+        or not request_token.strip()
+    ):
         raise RuntimeError(
             f"Antiforgery handshake failed: cookie={antiforgery!r}"
             f" token={request_token!r}"
@@ -96,7 +103,7 @@ async def request_with_token(
         url=url,
         headers=headers,
         cookies=token.cookies,
-        data=orjson.dumps(payload) if payload else None,
+        data=orjson.dumps(payload) if payload is not None else None,
     )
 
     text = await res.text()

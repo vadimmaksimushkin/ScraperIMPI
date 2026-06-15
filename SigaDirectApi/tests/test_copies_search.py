@@ -169,15 +169,6 @@ def test_gaceta_wins_over_fecha() -> None:
     assert payload["fechaHasta"] == "2026-02-09"
 
 
-def test_idarea_follows_gaceta_not_passed_area() -> None:
-    # copies does NOT check area<->gaceta coherence: with a gaceta present the
-    # passed `area` is ignored and idArea comes from gaceta.area. Pass a
-    # mismatching area (PATENTES) and confirm idArea is the gaceta's (MARCAS).
-    _, payload = build_url_payload(area=Area.PATENTES, gaceta=GACETA)
-    assert payload["idArea"] == str(GACETA.area.value)
-    assert payload["idArea"] != str(Area.PATENTES.value)
-
-
 def test_recaptcha_passthrough_in_payload() -> None:
     _, payload = build_url_payload(area=AREA, gaceta=GACETA, recaptcha=REAL_RECAPTCHA_TOKEN)
     assert payload["reCaptchaToken"] == REAL_RECAPTCHA_TOKEN

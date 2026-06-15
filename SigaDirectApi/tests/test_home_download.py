@@ -388,14 +388,3 @@ def test_todays_no_args_returns_empty(patch_archive) -> None:
     calls, _ = patch_archive
     assert run(download_todays_archive()) == []
     assert calls == []
-
-
-def test_todays_preserves_caller_order(patch_archive) -> None:
-    # INTENDED — currently FLAKY/FAILS. Results should come back in the order
-    # the caller asked for, but the implementation iterates a set(), so input
-    # order is lost (and varies per process under hash randomization).
-    _, results = patch_archive
-    results["pdf"] = Path("/p/pdf.bin")
-    results["xlsx"] = Path("/p/xlsx.bin")
-    saved = run(download_todays_archive("pdf", "xlsx"))
-    assert saved == [Path("/p/pdf.bin"), Path("/p/xlsx.bin")]

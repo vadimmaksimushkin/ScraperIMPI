@@ -1,11 +1,20 @@
 import re
 from enum import Enum, StrEnum, auto
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 
 # reCAPTCHA response tokens are opaque, URL-safe strings. They can't be verified
 # offline (only Google can), so this is a sanity gate on shape, not validity:
 # the URL-safe-base64 charset and a minimum length. Empty "" means "no token".
 RECAPTCHA_TOKEN_RE = re.compile(r"[A-Za-z0-9_-]{20,}")
+
+# The SIGA domain is Mexico City (UTC-6, no DST since 2022) — the same offset the
+# payloads hardcode as T06:00:00.000Z. "Future" is judged there, not on the host,
+# so a date that hasn't arrived in Mexico yet is rejected wherever this runs.
+MEXICO_TZ = timezone(timedelta(hours=-6))
+
+
+def mexico_today() -> date:
+    return datetime.now(MEXICO_TZ).date()
 
 
 class RequestMethods(Enum):
@@ -1963,6 +1972,11 @@ GACETA_COLUMNAS: dict[Gaceta, set[Columna]] = {
 
 
 
+# Defensive client-side cap on a free-form search term (Dato.valor). ASP.NET puts
+# no inherent length limit on a JSON string; this only guards an unknown SQL column.
+VALOR_MAX_LEN = 512
+
+
 class Dato:
     """
     One search term. Validates valor/fecha against the column kind
@@ -1977,8 +1991,17 @@ class Dato:
         fecha: date | None = None,
     ) -> None:
         if columna.kind is Kind.VALOR:
-            if not valor:
+            if not isinstance(valor, str):
+                message = f"{columna.name}: valor must be a string"
+                raise ValueError(message)
+            if not valor.strip():
                 message = f"{columna.name}: valor must be a non-empty string"
+                raise ValueError(message)
+            if len(valor) > VALOR_MAX_LEN:
+                message = f"{columna.name}: valor must be at most {VALOR_MAX_LEN} characters"
+                raise ValueError(message)
+            if any(ord(char) < 0x20 or ord(char) == 0x7F for char in valor):
+                message = f"{columna.name}: valor must not contain control characters"
                 raise ValueError(message)
             if fecha is not None:
                 message = f"{columna.name}: fecha must be omitted for a VALOR column"
@@ -1989,6 +2012,11 @@ class Dato:
                 raise ValueError(message)
             if fecha is None:
                 message = f"{columna.name}: fecha is required for a FECHA column"
+                raise ValueError(message)
+            if isinstance(fecha, datetime):  # time-of-day is meaningless; floor to date
+                fecha = fecha.date()
+            if fecha > mexico_today():
+                message = f"{columna.name}: fecha must not be in the future"
                 raise ValueError(message)
         self.operador = operador
         self.columna = columna

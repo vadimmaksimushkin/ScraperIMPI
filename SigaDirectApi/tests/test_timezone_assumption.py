@@ -1,22 +1,13 @@
-"""Timezone assumption: the SIGA domain is Mexico City (UTC-6) — Dato.to_payload
-even hardcodes T06:00:00Z — but every validator judges "future" with the RUNNER's
-local `date.today()`, not Mexico's. If the runner sits 1-2 hours off UTC-6, there
-is a near-midnight window where the runner's calendar date differs from Mexico's,
-so `fecha_hasta > date.today()` is wrong in BOTH directions:
+"""Timezone contract: the SIGA domain is Mexico City (UTC-6, no DST since 2022) —
+the payloads even hardcode T06:00:00Z. "Future" must therefore be judged against
+Mexico's current date, not the runner's host clock. constants.mexico_today()
+centralizes that, and every date-range validator gates fecha_hasta on it.
 
-  * runner EAST of Mexico (e.g. UTC-4/-5): its date rolls over first, so a date
-    that is still tomorrow (future) in Mexico is wrongly ACCEPTED.
-  * runner WEST of Mexico (e.g. UTC-7/-8): its date lags, so a date that is
-    already today (valid) in Mexico is wrongly REJECTED as future.
-
-These tests simulate the runner's local date deterministically (no real clock):
-the runner date is computed from a fixed UTC instant + offset, and the validator's
-`date.today()` is patched to return it. The metaclass keeps `isinstance(x, date)`
-working for real date args while overriding `today()`.
-
-The "runner in Mexico" sanity test PASSES (proves the harness is sound). The
-east/west tests assert the Mexico-correct outcome and currently FAIL — the fix is
-to compare against America/Mexico_City's current date, not the host's.
+These tests are deterministic (no real clock, no host-TZ dependence):
+  * mexico_today() is exercised by freezing the UTC instant (patching
+    constants.datetime), proving it tracks Mexico's calendar date, not UTC's.
+  * each validator is exercised by patching its mexico_today reference to a fixed
+    Mexico date, proving the future gate is judged there.
 
 Pure/offline.
 """
@@ -26,22 +17,21 @@ from datetime import date, datetime, timedelta, timezone
 import pytest
 
 import advanced_search
+import constants
 import copies_search
 import records_search
-from constants import Area, Columna, Dato, Operador
-
-MEXICO = timezone(timedelta(hours=-6))
+from constants import Area, Columna, Dato, Operador, mexico_today
 
 # A valid single Dato so advanced_search's date checks are the only gate.
 _DATO = Dato(operador=Operador.EMPTY, columna=Columna.CLASE, valor="42")
 
 
-def _call_copies(fd: date, fh: date):
-    return copies_search.input_validation(area=Area.MARCAS, fecha_desde=fd, fecha_hasta=fh)
-
-
 def _call_records(fd: date, fh: date):
     return records_search.input_validation(busqueda=3618676, fecha_desde=fd, fecha_hasta=fh)
+
+
+def _call_copies(fd: date, fh: date):
+    return copies_search.input_validation(area=Area.MARCAS, fecha_desde=fd, fecha_hasta=fh)
 
 
 def _call_advanced(fd: date, fh: date):
@@ -51,89 +41,59 @@ def _call_advanced(fd: date, fh: date):
 
 
 MODULES = [
-    (copies_search, _call_copies),
     (records_search, _call_records),
+    (copies_search, _call_copies),
     (advanced_search, _call_advanced),
 ]
-MODULE_IDS = ["copies", "records", "advanced"]
+MODULE_IDS = ["records", "copies", "advanced"]
 
 
-def _runner_date(instant_utc: datetime, offset_hours: int) -> date:
-    return instant_utc.astimezone(timezone(timedelta(hours=offset_hours))).date()
+# ===========================================================================
+# mexico_today(): tracks Mexico's calendar date from the absolute instant,
+# independent of UTC's date and of the host timezone.
+# ===========================================================================
+def _freeze_instant(monkeypatch, instant_utc: datetime) -> None:
+    """Freeze constants.datetime.now(tz) at a fixed UTC instant."""
 
-
-def _mexico_date(instant_utc: datetime) -> date:
-    return instant_utc.astimezone(MEXICO).date()
-
-
-def _patch_today(monkeypatch, module, today_value: date) -> None:
-    """Make module.date.today() return today_value while keeping isinstance()
-    working for real date arguments."""
-
-    class _DateMeta(type):
-        def __instancecheck__(cls, obj):
-            return isinstance(obj, date)
-
-    class _FakeDate(date, metaclass=_DateMeta):
+    class _FrozenDatetime(datetime):
         @classmethod
-        def today(cls):
-            return today_value
+        def now(cls, tz=None):
+            return instant_utc.astimezone(tz) if tz is not None else instant_utc.replace(tzinfo=None)
 
-    monkeypatch.setattr(module, "date", _FakeDate)
+    monkeypatch.setattr(constants, "datetime", _FrozenDatetime)
 
 
-# A UTC instant that puts Mexico at 23:30 (just before its midnight): a runner
-# 1-2h EAST has already rolled to the next day.
-EAST_INSTANT = datetime(2026, 6, 12, 5, 30, tzinfo=timezone.utc)  # Mexico 2026-06-11 23:30
-# A UTC instant that puts Mexico at 00:30 (just after its midnight): a runner
-# 1-2h WEST is still on the previous day.
-WEST_INSTANT = datetime(2026, 6, 12, 6, 30, tzinfo=timezone.utc)  # Mexico 2026-06-12 00:30
+@pytest.mark.parametrize(
+    "instant_utc, expected",
+    [
+        # 23:30 in Mexico (UTC 05:30 the next day): UTC has rolled over, Mexico hasn't.
+        (datetime(2026, 6, 12, 5, 30, tzinfo=timezone.utc), date(2026, 6, 11)),
+        # 00:30 in Mexico (UTC 06:30): Mexico has just rolled to the new day.
+        (datetime(2026, 6, 12, 6, 30, tzinfo=timezone.utc), date(2026, 6, 12)),
+    ],
+    ids=["just-before-mexico-midnight", "just-after-mexico-midnight"],
+)
+def test_mexico_today_follows_mexico_not_utc(monkeypatch, instant_utc, expected) -> None:
+    _freeze_instant(monkeypatch, instant_utc)
+    assert mexico_today() == expected
 
 
 # ===========================================================================
-# Sanity: a runner actually in Mexico (UTC-6) judges the boundary correctly.
-# PASSES — proves the harness is sound and the bug is specifically the offset.
+# Every validator gates "future" on mexico_today(), not the host's date.
 # ===========================================================================
+MEXICO_NOW = date(2026, 6, 11)
+
+
 @pytest.mark.parametrize("module, call", MODULES, ids=MODULE_IDS)
-def test_runner_in_mexico_judges_boundary_correctly(monkeypatch, module, call) -> None:
-    mexico_today = _mexico_date(WEST_INSTANT)
-    runner_today = _runner_date(WEST_INSTANT, -6)
-    assert runner_today == mexico_today
-    _patch_today(monkeypatch, module, runner_today)
-
-    ok_today, _ = call(mexico_today, mexico_today)
-    ok_future, _ = call(mexico_today + timedelta(days=1), mexico_today + timedelta(days=1))
-    assert ok_today is True
-    assert ok_future is False
+def test_future_in_mexico_is_rejected(monkeypatch, module, call) -> None:
+    monkeypatch.setattr(module, "mexico_today", lambda: MEXICO_NOW)
+    tomorrow = MEXICO_NOW + timedelta(days=1)
+    ok, _ = call(tomorrow, tomorrow)
+    assert ok is False
 
 
-# ===========================================================================
-# INTENDED behaviour — currently FAILS.
-# ===========================================================================
-@pytest.mark.parametrize("offset", [-4, -5], ids=["UTC-4", "UTC-5"])
 @pytest.mark.parametrize("module, call", MODULES, ids=MODULE_IDS)
-def test_runner_east_wrongly_accepts_mexico_future(monkeypatch, module, call, offset) -> None:
-    # Runner is a calendar day ahead of Mexico; Mexico's "tomorrow" is future
-    # there (no gaceta exists yet) but the runner accepts it.
-    runner_today = _runner_date(EAST_INSTANT, offset)
-    mexico_today = _mexico_date(EAST_INSTANT)
-    assert runner_today > mexico_today  # discrepancy actually present
-    mexico_future = mexico_today + timedelta(days=1)
-
-    _patch_today(monkeypatch, module, runner_today)
-    ok, _ = call(mexico_future, mexico_future)
-    assert ok is False  # INTENDED: future-in-Mexico must be rejected
-
-
-@pytest.mark.parametrize("offset", [-7, -8], ids=["UTC-7", "UTC-8"])
-@pytest.mark.parametrize("module, call", MODULES, ids=MODULE_IDS)
-def test_runner_west_wrongly_rejects_mexico_today(monkeypatch, module, call, offset) -> None:
-    # Runner is a calendar day behind Mexico; Mexico's "today" is valid there
-    # but the runner rejects it as future.
-    runner_today = _runner_date(WEST_INSTANT, offset)
-    mexico_today = _mexico_date(WEST_INSTANT)
-    assert runner_today < mexico_today  # discrepancy actually present
-
-    _patch_today(monkeypatch, module, runner_today)
-    ok, _ = call(mexico_today, mexico_today)
-    assert ok is True  # INTENDED: today-in-Mexico must be accepted
+def test_today_in_mexico_is_accepted(monkeypatch, module, call) -> None:
+    monkeypatch.setattr(module, "mexico_today", lambda: MEXICO_NOW)
+    ok, _ = call(MEXICO_NOW, MEXICO_NOW)
+    assert ok is True

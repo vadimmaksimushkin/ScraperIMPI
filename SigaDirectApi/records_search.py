@@ -3,13 +3,13 @@ import aiohttp
 from typing import Any
 import logging
 import sys
-from datetime import date
+from datetime import date, datetime
 from base_search import (
     BASE,
     RequestMethods,
     request_with_token,
 )
-from constants import Area, Gaceta, RECAPTCHA_TOKEN_RE
+from constants import Area, Gaceta, RECAPTCHA_TOKEN_RE, mexico_today
 
 log = logging.getLogger("siga.search")
 logging.basicConfig(
@@ -19,6 +19,8 @@ logging.basicConfig(
 )
 
 URL=f"{BASE}/api/BusquedaFicha/GetFichas"
+
+INT64_MAX = 2**63 - 1  # widest fixed-width integer any backend could represent
 
 
 def is_list_of(lst: object, T: type) -> bool:
@@ -38,12 +40,16 @@ def input_validation( # NOSONAR
         return False, "busqueda must be the type int"
     if busqueda < 10:
         return False, "busqueda must be at least 2 digits long"
+    if busqueda > INT64_MAX:
+        return False, "busqueda is too large for the backend to represent"
 
     # parameter types
     if area is not None and not isinstance(area, Area): # type: ignore
         return False, "area must be an Area"
     if gacetas is not None and not is_list_of(gacetas, Gaceta):
         return False, "gacetas must be a list of Gaceta"
+    if gacetas is not None and len(gacetas) > len(Gaceta):
+        return False, "too many gacetas (more than exist)"
     if fecha_desde is not None and not isinstance(fecha_desde, date): # type: ignore
         return False, "fecha_desde must be a date"
     if fecha_hasta is not None and not isinstance(fecha_hasta, date): # type: ignore
@@ -52,6 +58,12 @@ def input_validation( # NOSONAR
         return False, "recaptcha must be the type str"
     if recaptcha and not RECAPTCHA_TOKEN_RE.fullmatch(recaptcha):
         return False, "recaptcha has an invalid format"
+
+    # a datetime is not a pure date; floor it (time-of-day is meaningless here)
+    if isinstance(fecha_desde, datetime):
+        fecha_desde = fecha_desde.date()
+    if isinstance(fecha_hasta, datetime):
+        fecha_hasta = fecha_hasta.date()
 
     # area and gacetas are scoped together
     if bool(area) != bool(gacetas): # XOR(area, gacetas)
@@ -66,7 +78,7 @@ def input_validation( # NOSONAR
         return False, "Both dates must be present or absent"
     if fecha_desde is not None and fecha_hasta is not None and fecha_hasta < fecha_desde:
         return False, "fecha_desde must be <= fecha_hasta"
-    if fecha_hasta is not None and fecha_hasta > date.today():
+    if fecha_hasta is not None and fecha_hasta > mexico_today():
         return False, "dates must be <= current date"
 
     return True, "OK"

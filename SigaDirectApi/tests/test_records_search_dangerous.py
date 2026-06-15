@@ -9,9 +9,8 @@ column) will overflow, throw, or silently mis-store it. The other unbounded
 surface is `gacetas`: a 5000-element list is accepted even though only 26 distinct
 gacetas exist, so any such list is mostly duplicates and an oversized payload.
 
-Section A documents the current (dangerous) behaviour and PASSES. Section B
-asserts the INTENDED hardening (busqueda bounded to a server-representable range;
-gacetas no longer than the universe of gacetas) and currently FAILS.
+The hardening is now enforced: busqueda is bounded to a server-representable
+range (Int64), and gacetas may be no longer than the universe of gacetas.
 
 Pure/offline: nothing here touches the network.
 """
@@ -29,39 +28,17 @@ G = Gaceta.SOLICITUDES_DE_MARCAS_AVISOS_Y_NOMBRES_COMERCIALES_PRESENTADAS_ANTE_E
 
 
 # ===========================================================================
-# Section A — current behaviour, PASSES. The danger is real and on-the-wire.
+# Still accepted: we cap at Int64, NOT Int32 — an Int32-overflowing value is
+# deliberately let through (the backend's true width is unknown).
 # ===========================================================================
 def test_busqueda_above_int32_accepted() -> None:
-    # If the backend column/param is a 32-bit int (the SQL Server default), this
-    # is already out of range, yet validation waves it through.
     ok, _ = input_validation(busqueda=INT32_MAX + 1)
     assert ok is True
     assert build_payload(busqueda=INT32_MAX + 1)["busqueda"] == "2147483648"
 
 
-def test_busqueda_above_int64_accepted() -> None:
-    ok, _ = input_validation(busqueda=INT64_MAX + 1)
-    assert ok is True
-
-
-def test_busqueda_absurd_magnitude_reaches_wire() -> None:
-    n = 10**40  # 41 digits; no fixed-width integer can represent it
-    assert input_validation(busqueda=n)[0] is True
-    wire = build_payload(busqueda=n)["busqueda"]
-    assert wire == "1" + "0" * 40
-    assert len(wire) == 41
-
-
-def test_gacetas_list_unbounded_with_dupes_kept() -> None:
-    # Only 26 Gaceta members exist, yet a 5000-element all-duplicate list is
-    # accepted and shipped verbatim as idGaceta.
-    big = [G] * 5000
-    assert input_validation(busqueda=10, area=AREA, gacetas=big)[0] is True
-    assert build_payload(busqueda=10, area=AREA, gacetas=big)["idGaceta"] == [G.id_gaceta] * 5000
-
-
 # ===========================================================================
-# Section B — INTENDED hardening. Currently FAILS.
+# Section B — INTENDED hardening. Now enforced.
 # ===========================================================================
 def test_busqueda_beyond_int64_should_be_rejected() -> None:
     # 2**63 exceeds signed Int64; no fixed-width server integer holds it, so it

@@ -3,7 +3,7 @@ import aiohttp
 from typing import Any
 import logging
 import sys
-from datetime import date
+from datetime import date, datetime
 from base_search import (
     BASE,
     RequestMethods,
@@ -19,6 +19,7 @@ from constants import (
     SECCION_COLUMNAS,
     GACETA_COLUMNAS,
     RECAPTCHA_TOKEN_RE,
+    mexico_today,
 )
 
 log = logging.getLogger("siga.search")
@@ -62,12 +63,18 @@ def input_validation( # NOSONAR
     if recaptcha and not RECAPTCHA_TOKEN_RE.fullmatch(recaptcha):
         return False, "recaptcha has an invalid format"
 
+    # a datetime is not a pure date; floor it (time-of-day is meaningless here)
+    if isinstance(fecha_desde, datetime):
+        fecha_desde = fecha_desde.date()
+    if isinstance(fecha_hasta, datetime):
+        fecha_hasta = fecha_hasta.date()
+
     # date range: both present or both absent, ordered, and not in the future
     if bool(fecha_desde) != bool(fecha_hasta):  # XOR
         return False, "Both dates must be present or absent"
     if fecha_desde is not None and fecha_hasta is not None and fecha_hasta < fecha_desde:
         return False, "fecha_desde must be <= fecha_hasta"
-    if fecha_hasta is not None and fecha_hasta > date.today():
+    if fecha_hasta is not None and fecha_hasta > mexico_today():
         return False, "dates must be <= current date"
 
     # seccion can't be selected without gaceta
@@ -109,7 +116,7 @@ def input_validation( # NOSONAR
                 )
                 return False, message
         for s in secciones or []:
-            if d.columna not in SECCION_COLUMNAS[s]:
+            if d.columna not in SECCION_COLUMNAS.get(s, set()):
                 message = (
                     f"{d.columna.name} is not a valid column"
                     f" for seccion {s.name}"

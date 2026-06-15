@@ -1,15 +1,16 @@
 import asyncio
 import aiohttp
 from typing import Any
-from datetime import date
+from datetime import date, datetime, timedelta
 import logging
 import sys
 from base_search import (
     BASE,
+    DEFAULT_YEARS_BACK,
     RequestMethods,
     request_with_token,
 )
-from constants import Area, Gaceta, RECAPTCHA_TOKEN_RE
+from constants import Area, Gaceta, RECAPTCHA_TOKEN_RE, mexico_today
 log = logging.getLogger("siga.search")
 logging.basicConfig(
     level=logging.INFO,
@@ -34,6 +35,8 @@ def input_validation( # NOSONAR
         return False, "area must be an Area"
     if gaceta is not None and not isinstance(gaceta, Gaceta): # type: ignore
         return False, "gaceta must be a Gaceta"
+    if gaceta is not None and gaceta.area is not area:
+        return False, "gaceta must be in the given area"
     if fecha_desde is not None and not isinstance(fecha_desde, date): # type: ignore
         return False, "fecha_desde must be a date"
     if fecha_hasta is not None and not isinstance(fecha_hasta, date): # type: ignore
@@ -43,6 +46,12 @@ def input_validation( # NOSONAR
     if recaptcha and not RECAPTCHA_TOKEN_RE.fullmatch(recaptcha):
         return False, "recaptcha has an invalid format"
 
+    # a datetime is not a pure date; floor it (time-of-day is meaningless here)
+    if isinstance(fecha_desde, datetime):
+        fecha_desde = fecha_desde.date()
+    if isinstance(fecha_hasta, datetime):
+        fecha_hasta = fecha_hasta.date()
+
     # need a gaceta or a date range to scope the download
     if not gaceta and not fecha_desde and not fecha_hasta:
         message = (
@@ -51,12 +60,15 @@ def input_validation( # NOSONAR
         )
         return False, message
 
-    # date range: both present or both absent, ordered, and not in the future
+    # date range: both present or both absent, ordered, within the design floor,
+    # and not in the future
     if bool(fecha_desde) != bool(fecha_hasta): # XOR(fecha_desde, fecha_hasta)
         return False, "Both dates must be present or absent"
     if fecha_desde is not None and fecha_hasta is not None and fecha_hasta < fecha_desde:
         return False, "fecha_desde must be <= fecha_hasta"
-    if fecha_hasta is not None and fecha_hasta > date.today():
+    if fecha_desde is not None and fecha_desde < mexico_today() - timedelta(days=365 * DEFAULT_YEARS_BACK):
+        return False, f"fecha_desde must be within the last {DEFAULT_YEARS_BACK} years"
+    if fecha_hasta is not None and fecha_hasta > mexico_today():
         return False, "dates must be <= current date"
 
     return True, "OK"

@@ -152,9 +152,9 @@ def test_equal_dates_in_the_past_ok() -> None:
 # build_url_payload: quirks (should PASS)
 # ===========================================================================
 def test_build_emits_nonexistent_area_code() -> None:
-    # Quirk: a gaceta mapped to a 'DOES NOT EXIST' area still yields its code,
-    # and the passed `area` (MARCAS) is ignored in favour of the gaceta's.
-    _, payload = build_url_payload(area=Area.MARCAS, gaceta=FAKE_AREA_GACETA)
+    # A gaceta mapped to a 'DOES NOT EXIST' sentinel area (AREA_7) still yields
+    # its code on the wire. Area must now match the gaceta's area (coherence).
+    _, payload = build_url_payload(area=Area.AREA_7, gaceta=FAKE_AREA_GACETA)
     assert payload["idArea"] == str(Area.AREA_7.value)  # "7"
     assert payload["idGaceta"] == str(FAKE_AREA_GACETA.id_gaceta)
 
@@ -168,29 +168,27 @@ def test_build_equal_dates_in_past() -> None:
 
 
 # ===========================================================================
-# INTENDED behaviour — currently FAILS / ERRORS.
+# INTENDED behaviour — now enforced.
 # ===========================================================================
-def test_datetime_for_fecha_should_be_rejected_cleanly() -> None:
-    # A datetime is not a plain date, but datetime subclasses date so it slips
-    # past isinstance(..., date). Then `fecha_hasta > date.today()` compares a
-    # datetime to a date and raises TypeError instead of returning (False, msg).
+def test_datetime_for_fecha_normalized_cleanly() -> None:
+    # A datetime subclasses date; it's floored to its date instead of raising a
+    # TypeError on the `> mexico_today()` compare, so a past datetime validates.
     ok, _ = input_validation(
         area=AREA,
         fecha_desde=datetime(2020, 1, 1, 12, 0),  # type: ignore[arg-type]
         fecha_hasta=datetime(2020, 1, 1, 12, 0),  # type: ignore[arg-type]
     )
-    assert ok is False
+    assert ok is True
 
 
-def test_build_datetime_raises_value_error() -> None:
-    # INTENDED: a bad date type surfaces as ValueError (like every other bad
-    # input). CURRENTLY: a raw TypeError leaks from the date/datetime compare.
-    with pytest.raises(ValueError):
-        build_url_payload(
-            area=AREA,
-            fecha_desde=datetime(2020, 1, 1),  # type: ignore[arg-type]
-            fecha_hasta=datetime(2020, 1, 1),  # type: ignore[arg-type]
-        )
+def test_build_datetime_normalized_to_date() -> None:
+    # A datetime is floored to its date; build serializes the date part.
+    _, payload = build_url_payload(
+        area=AREA,
+        fecha_desde=datetime(2020, 1, 1),  # type: ignore[arg-type]
+        fecha_hasta=datetime(2020, 1, 1),  # type: ignore[arg-type]
+    )
+    assert payload["fechaDesde"] == payload["fechaHasta"] == "2020-01-01"
 
 
 def test_area_gaceta_mismatch_should_be_rejected() -> None:

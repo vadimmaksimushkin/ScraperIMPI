@@ -198,7 +198,7 @@ def test_recaptcha_bad(tok: str) -> None:
 
 
 # ===========================================================================
-# INTENDED behaviour — currently FAILS / ERRORS (the date/datetime trap).
+# datetime is floored to a pure date (time-of-day is meaningless here).
 # ===========================================================================
 @pytest.mark.parametrize(
     "desde, hasta",
@@ -208,20 +208,19 @@ def test_recaptcha_bad(tok: str) -> None:
     ],
     ids=["both-datetime", "date-and-datetime"],
 )
-def test_datetime_for_fecha_rejected_cleanly(desde, hasta) -> None:
-    # datetime subclasses date, so it passes isinstance(..., date). Then the
-    # `fecha_hasta > date.today()` comparison raises TypeError instead of
-    # returning a clean (False, msg).
+def test_datetime_for_fecha_normalized_cleanly(desde, hasta) -> None:
+    # datetime subclasses date; it's floored to its date instead of raising a
+    # TypeError on the `> mexico_today()` compare, so a past datetime validates.
     ok, _ = input_validation(busqueda=BUSQUEDA, fecha_desde=desde, fecha_hasta=hasta)  # type: ignore[arg-type]
-    assert ok is False
+    assert ok is True
 
 
-def test_build_datetime_raises_value_error() -> None:
-    # INTENDED: a bad date type surfaces as ValueError like every other bad
-    # input. CURRENTLY: a raw TypeError leaks from the date/datetime compare.
-    with pytest.raises(ValueError):
-        build_payload(
-            busqueda=BUSQUEDA,
-            fecha_desde=datetime(2020, 1, 1),  # type: ignore[arg-type]
-            fecha_hasta=datetime(2020, 1, 1),  # type: ignore[arg-type]
-        )
+def test_build_datetime_normalized_to_date() -> None:
+    # A datetime is floored to its date; build_payload serializes the date part.
+    payload = build_payload(
+        busqueda=BUSQUEDA,
+        fecha_desde=datetime(2020, 1, 1),  # type: ignore[arg-type]
+        fecha_hasta=datetime(2020, 1, 1),  # type: ignore[arg-type]
+    )
+    assert payload["fechaDesde"] == "01-01-2020"
+    assert payload["fechaHasta"] == "01-01-2020"

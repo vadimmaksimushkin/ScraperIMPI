@@ -14,8 +14,8 @@ busqueda). So the residual dangerous-input surface is narrow:
      so a bogus idArea reaches the wire on the by-fecha endpoint.
   3. recaptcha has no upper length bound (shared with the other modules).
 
-Section A documents the current (dangerous) behaviour and PASSES. Section B
-asserts the INTENDED hardening (a sane lower floor on fecha_desde) and FAILS.
+The intended hardening is now enforced: fecha_desde has a sane lower floor
+(today - DEFAULT_YEARS_BACK), so prehistoric/unbounded windows are rejected.
 
 Pure/offline: nothing here touches the network.
 """
@@ -35,23 +35,9 @@ BEFORE_FLOOR = date(TODAY.year - DEFAULT_YEARS_BACK - 1, 1, 1)
 
 
 # ===========================================================================
-# Section A — current behaviour, PASSES. The danger is real and on-the-wire.
+# Still accepted: residual documented gaps — a "DOES NOT EXIST" sentinel area
+# reaches the wire on the by-fecha endpoint; recaptcha has no upper length bound.
 # ===========================================================================
-def test_ancient_date_range_accepted() -> None:
-    # Year 1 .. today: ~2000-year span, no gaceta predates SIGA, yet it validates
-    # and ships a well-formed (but absurd) ISO date.
-    ok, _ = input_validation(area=AREA, fecha_desde=date(1, 1, 1), fecha_hasta=TODAY)
-    assert ok is True
-    _, payload = build_url_payload(area=AREA, fecha_desde=date(1, 1, 1), fecha_hasta=TODAY)
-    assert payload["fechaDesde"] == "0001-01-01"
-
-
-def test_range_far_older_than_design_floor_accepted() -> None:
-    # base_search.DEFAULT_YEARS_BACK == 20, yet a date well before that floor is
-    # accepted with no clamping.
-    assert input_validation(area=AREA, fecha_desde=BEFORE_FLOOR, fecha_hasta=TODAY)[0] is True
-
-
 def test_nonexistent_area_by_fecha_reaches_wire() -> None:
     # AREA_7 is flagged "DOES NOT EXIST" in constants, but it's a real Area
     # member, so its code is sent verbatim on the by-fecha endpoint.

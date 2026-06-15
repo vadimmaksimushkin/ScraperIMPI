@@ -2,6 +2,7 @@ import asyncio
 import re
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import unquote
 import aiohttp
 import orjson
 import logging
@@ -30,7 +31,7 @@ async def download_request(
     session: aiohttp.ClientSession,
     url: str,
     method: RequestMethods = RequestMethods.POST,
-    payload: dict[str, Any] = {},
+    payload: dict[str, Any] | None = None,
 ) -> aiohttp.ClientResponse:
     token = await fetch_token_pair(session)
 
@@ -44,10 +45,33 @@ async def download_request(
         url=url,
         headers=headers,
         cookies=token.cookies,
-        data=orjson.dumps(payload),
+        data=orjson.dumps(payload or {}),
     )
 
     return res
+
+
+# RFC 5987 extended form: filename*=charset'lang'pct-encoded (takes precedence)
+_FILENAME_STAR_RE = re.compile(r"filename\*\s*=\s*([^;]+)", re.IGNORECASE)
+# Plain form: filename="quoted, may contain ;" or filename=bare-token
+_FILENAME_RE = re.compile(r'filename\s*=\s*("[^"]*"|[^;]+)', re.IGNORECASE)
+
+
+def _safe_basename(name: str, fallback: str) -> str:
+    """Reduce a server-controlled name to a harmless basename: no path separators
+    or traversal, no control chars, within the filesystem's 255-byte limit."""
+    name = name.replace("\\", "/").rsplit("/", 1)[-1]   # last path component only
+    name = "".join(ch for ch in name if ord(ch) >= 0x20 and ord(ch) != 0x7F)
+    name = name.strip().strip(".")                      # kills "", ".", ".."
+    if not name:
+        return fallback
+    if len(name.encode()) > 255:
+        stem, dot, ext = name.rpartition(".")
+        if dot and len(ext) < 250:
+            name = stem.encode()[: 255 - len(ext) - 1].decode("utf-8", "ignore") + "." + ext
+        else:
+            name = name.encode()[:255].decode("utf-8", "ignore")
+    return name
 
 
 def get_filename_from_headers(
@@ -55,8 +79,18 @@ def get_filename_from_headers(
     fallback: str = "filename_was_not_returned",
 ) -> str:
     cd = res.headers.get("Content-Disposition", "")
-    match = re.search(r'filename\*?=(?:UTF-8\'\')?"?([^";]+)"?', cd)
-    return match.group(1) if match else fallback
+    star = _FILENAME_STAR_RE.search(cd)
+    if star:
+        raw = star.group(1).strip().strip('"')
+        if raw.count("'") >= 2:                          # charset'lang'value -> value
+            raw = raw.split("'", 2)[2]
+        name = unquote(raw)
+    else:
+        plain = _FILENAME_RE.search(cd)
+        if not plain:
+            return fallback
+        name = plain.group(1).strip().strip('"')
+    return _safe_basename(name, fallback)
 
 
 async def download_archive(
@@ -79,7 +113,7 @@ async def download_archive(
         payload={},
     )
     body = await res.read()
-    if res.status == 404 and body == b"No se encontraron archivos PDF para descargar.":
+    if res.status == 404 and body.strip() == b"No se encontraron archivos PDF para descargar.":
         log.info("Today there're no new archives")
         return None
     elif res.status != 200:

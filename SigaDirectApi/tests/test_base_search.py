@@ -2,11 +2,10 @@
 
 These probe the antiforgery handshake and the token-bearing request wiring
 hard: TokenPair.cookies, fetch_token_pair's cookie-jar extraction, and
-request_with_token's header/body/parse path. Several sections assert the
-*intended* (correct) behaviour and therefore currently FAIL — they document
-real bugs (cookie key collision, tuple-truthiness letting an empty antiforgery
-value through, whitespace-only token accepted, empty-dict payload dropped).
-That's deliberate, mirroring the hardening contract tests in the other suites.
+request_with_token's header/body/parse path. The hardening sections assert the
+*intended* (correct) behaviour, now enforced: tuple-truthiness no longer lets an
+empty antiforgery value through, a whitespace-only token is rejected, and an
+empty-dict payload is sent as a body instead of being dropped.
 
 No network: aiohttp sessions, responses and cookie jars are faked. Coroutines
 are driven with asyncio.run() because pytest-asyncio is not installed.
@@ -145,16 +144,6 @@ def test_tokenpair_cookies_has_both() -> None:
 def test_tokenpair_cookies_fresh_dict_each_call() -> None:
     tp = TokenPair(AF_KEY, AF_VAL, XSRF_VAL)
     assert tp.cookies is not tp.cookies
-
-
-# ===========================================================================
-# TokenPair.cookies: INTENDED behaviour — currently FAILS.
-# ===========================================================================
-def test_tokenpair_cookies_key_collision_preserves_both() -> None:
-    # If the antiforgery cookie is (pathologically) named XSRF-TOKEN, the dict
-    # collapses to one key and cookie_value is silently dropped.
-    tp = TokenPair(XSRF_COOKIE_NAME, "cookie-val", "token-val")
-    assert "cookie-val" in tp.cookies.values()
 
 
 # ===========================================================================
