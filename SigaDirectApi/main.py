@@ -13,6 +13,7 @@ import aiohttp
 import uvicorn
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 import db
@@ -477,6 +478,14 @@ async def advanced_search_endpoint(body: AdvancedSearchRequest) -> JSONResponse:
         },
     )
     return response
+
+
+# ---------------------------------------------------------------------------
+# Static test console (index.html + script.js), served at GET /.
+# Mounted last so it only catches paths the API routes and /docs don't.
+# ---------------------------------------------------------------------------
+STATIC_DIR = Path(__file__).resolve().parent / "static"
+app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
 
 
 if __name__ == "__main__":
