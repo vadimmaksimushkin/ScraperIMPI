@@ -9,3 +9,7 @@ debug/
 .env
 *.png
 !.env.example
+siga.db
+*.db
+*.db-wal
+*.db-shm

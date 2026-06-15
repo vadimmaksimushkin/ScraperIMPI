@@ -96,6 +96,7 @@ def get_filename_from_headers(
 async def download_archive(
     session: aiohttp.ClientSession,
     type: Literal["xlsx", "pdf"],
+    download_dir: Path | None = None,
 ) -> Path | None:
     url = ""
     if type not in ("xlsx", "pdf"):
@@ -112,24 +113,32 @@ async def download_archive(
         url=url,
         payload={},
     )
-    body = await res.read()
-    if res.status == 404 and body.strip() == b"No se encontraron archivos PDF para descargar.":
-        log.info("Today there're no new archives")
-        return None
-    elif res.status != 200:
+    # A 404 with the sentinel body just means "nothing published yet today"; its
+    # body is tiny so reading it is cheap. Any other non-200 is a real error.
+    if res.status != 200:
+        body = await res.read()
+        if res.status == 404 and body.strip() == b"No se encontraron archivos PDF para descargar.":
+            log.info("Today there're no new archives")
+            return None
         raise RuntimeError(f"[download_archive] status={res.status} body={body[:200]!r}")
 
     ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     name = get_filename_from_headers(res, f"archive_{ts}.{type}")
 
-    download_directory = DOWNLOAD_PATH
-    download_directory.mkdir(exist_ok=True)
+    download_directory = download_dir or DOWNLOAD_PATH
+    download_directory.mkdir(parents=True, exist_ok=True)
     downloaded_file = download_directory / name
-    downloaded_file.write_bytes(body)
+    # Stream to disk in 64 KiB chunks so a 200 MB archive never sits whole in RAM.
+    with downloaded_file.open("wb") as fh:
+        async for chunk in res.content.iter_chunked(1 << 16):
+            fh.write(chunk)
     return downloaded_file
 
 
-async def download_todays_archive(*types: Literal["xlsx", "pdf"]) -> list[Path]:
+async def download_todays_archive(
+    *types: Literal["xlsx", "pdf"],
+    download_dir: Path | None = None,
+) -> list[Path]:
     saved: list[Path] = []
     download_types: set[str] = set()
     for type in types:
@@ -140,7 +149,7 @@ async def download_todays_archive(*types: Literal["xlsx", "pdf"]) -> list[Path]:
 
     async with aiohttp.ClientSession() as session:
         for type in download_types:
-            filename = await download_archive(session=session, type=type) # type: ignore
+            filename = await download_archive(session=session, type=type, download_dir=download_dir) # type: ignore
             if filename:
                 saved.append(filename)
     return saved
