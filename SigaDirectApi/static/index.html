@@ -36,6 +36,12 @@
     header h1 { font-size: 1.1rem; margin: 0; }
     header a { color: var(--accent); text-decoration: none; font-size: .9rem; }
     header a:hover { text-decoration: underline; }
+    .header-right { display: flex; align-items: center; gap: 1.1rem; }
+    .switch {
+      display: inline-flex; align-items: center; gap: .4rem;
+      font-size: .85rem; color: var(--ink); cursor: pointer; user-select: none;
+    }
+    .switch input { cursor: pointer; margin: 0; }
     main { max-width: 880px; margin: 1.5rem auto; padding: 0 1.5rem; }
     .card {
       background: var(--card);
@@ -61,6 +67,23 @@
       font-size: .95rem;
       font-family: ui-monospace, monospace;
     }
+    select {
+      flex: 1;
+      min-width: 0;
+      padding: .5rem .6rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: .9rem;
+      font-family: ui-monospace, monospace;
+      background: #fff;
+      color: var(--ink);
+    }
+    select[multiple] { min-height: 104px; }
+    /* raw ⇄ human mode visibility */
+    .human-only { display: none; }
+    body.human-mode .raw-only { display: none; }
+    body.human-mode .field.human-only { display: flex; }
+    body.human-mode .dato-row .human-only { display: block; }
     button {
       padding: .5rem 1.1rem;
       border: none;
@@ -147,7 +170,12 @@
 <body>
   <header>
     <h1>SIGA Direct API — Test Console</h1>
-    <a href="/docs" target="_blank" rel="noopener">FastAPI docs ↗</a>
+    <div class="header-right">
+      <label class="switch">
+        <input type="checkbox" id="mode-toggle" /> Human mode
+      </label>
+      <a href="/docs" target="_blank" rel="noopener">FastAPI docs ↗</a>
+    </div>
   </header>
 
   <main>
@@ -173,13 +201,21 @@
         or a <code>fecha_desde</code>/<code>fecha_hasta</code> range. Dates are
         <code>YYYY-MM-DD</code>.
       </p>
-      <div class="field">
+      <div class="field raw-only">
         <label for="c-area">area</label>
         <input id="c-area" type="text" placeholder="e.g. 1 (PATENTES)" />
       </div>
-      <div class="field">
+      <div class="field human-only">
+        <label for="c-area-sel">area</label>
+        <select id="c-area-sel"></select>
+      </div>
+      <div class="field raw-only">
         <label for="c-gaceta">gaceta</label>
         <input id="c-gaceta" type="text" placeholder="optional id, e.g. 2" />
+      </div>
+      <div class="field human-only">
+        <label for="c-gaceta-sel">gaceta</label>
+        <select id="c-gaceta-sel"></select>
       </div>
       <div class="field">
         <label for="c-desde">fecha_desde</label>
@@ -209,13 +245,21 @@
         <label for="r-busqueda">busqueda</label>
         <input id="r-busqueda" type="text" placeholder="e.g. 3618676" />
       </div>
-      <div class="field">
+      <div class="field raw-only">
         <label for="r-area">area</label>
         <input id="r-area" type="text" placeholder="optional, e.g. 2 (MARCAS)" />
       </div>
-      <div class="field">
+      <div class="field human-only">
+        <label for="r-area-sel">area</label>
+        <select id="r-area-sel"></select>
+      </div>
+      <div class="field raw-only">
         <label for="r-gacetas">gacetas</label>
         <input id="r-gacetas" type="text" placeholder="optional ids, comma-separated; requires area" />
+      </div>
+      <div class="field human-only">
+        <label for="r-gacetas-sel">gacetas</label>
+        <select id="r-gacetas-sel" multiple></select>
       </div>
       <div class="field">
         <label for="r-desde">fecha_desde</label>
@@ -243,9 +287,13 @@
         per the column's kind. <code>gacetas</code>/<code>secciones</code> are
         comma-separated ids. Dates are <code>YYYY-MM-DD</code>.
       </p>
-      <div class="field">
+      <div class="field raw-only">
         <label for="a-area">area</label>
         <input id="a-area" type="text" placeholder="e.g. 2 (MARCAS)" />
+      </div>
+      <div class="field human-only">
+        <label for="a-area-sel">area</label>
+        <select id="a-area-sel"></select>
       </div>
 
       <p class="subtitle">datos (terms)</p>
@@ -255,13 +303,21 @@
       </div>
 
       <p class="subtitle">filters</p>
-      <div class="field">
+      <div class="field raw-only">
         <label for="a-gacetas">gacetas</label>
         <input id="a-gacetas" type="text" placeholder="optional ids, comma-separated" />
       </div>
-      <div class="field">
+      <div class="field human-only">
+        <label for="a-gacetas-sel">gacetas</label>
+        <select id="a-gacetas-sel" multiple></select>
+      </div>
+      <div class="field raw-only">
         <label for="a-secciones">secciones</label>
         <input id="a-secciones" type="text" placeholder="optional ids, comma-separated" />
+      </div>
+      <div class="field human-only">
+        <label for="a-secciones-sel">secciones</label>
+        <select id="a-secciones-sel" multiple></select>
       </div>
       <div class="field">
         <label for="a-desde">fecha_desde</label>

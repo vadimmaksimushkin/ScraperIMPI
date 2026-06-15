@@ -137,7 +137,7 @@ async function pollOnce(statusUrl) {
 
 // --- copies search ----------------------------------------------------------
 async function copiesSearch() {
-  const area = $("c-area").value.trim();
+  const area = singleVal("c-area", "c-area-sel");
   if (!area) {
     $("json-output").innerHTML = "";
     appendJson("copies/search — not sent", null, { error: "area is required" });
@@ -146,7 +146,7 @@ async function copiesSearch() {
 
   const params = new URLSearchParams({ area });
   const optional = {
-    gaceta: $("c-gaceta").value.trim(),
+    gaceta: singleVal("c-gaceta", "c-gaceta-sel"),
     fecha_desde: $("c-desde").value.trim(),
     fecha_hasta: $("c-hasta").value.trim(),
     recaptcha: $("c-recaptcha").value.trim(),
@@ -181,14 +181,11 @@ async function recordsSearch() {
   }
 
   const params = new URLSearchParams({ busqueda });
-  const area = $("r-area").value.trim();
+  const area = singleVal("r-area", "r-area-sel");
   if (area) params.set("area", area);
 
-  const gacetas = $("r-gacetas").value.trim();
-  if (gacetas) {
-    for (const g of gacetas.split(",").map((s) => s.trim()).filter(Boolean)) {
-      params.append("gacetas", g);
-    }
+  for (const g of multiVals("r-gacetas", "r-gacetas-sel")) {
+    params.append("gacetas", g);
   }
 
   const desde = $("r-desde").value.trim();
@@ -219,19 +216,23 @@ function addDatoRow() {
   const row = document.createElement("div");
   row.className = "dato-row";
   row.innerHTML =
-    '<input class="d-columna" type="text" placeholder="columna (e.g. CLASE)" />' +
+    '<input class="d-columna raw-only" type="text" placeholder="columna (e.g. CLASE)" />' +
+    '<select class="d-columna-sel human-only"></select>' +
     '<input class="d-operador" type="text" placeholder="operador (blank, AND/OR/NOT)" />' +
     '<input class="d-valor" type="text" placeholder="valor" />' +
     '<input class="d-fecha" type="text" placeholder="fecha YYYY-MM-DD" />' +
     '<button class="d-remove" type="button" title="Remove term">×</button>';
   row.querySelector(".d-remove").addEventListener("click", () => row.remove());
   $("a-datos").appendChild(row);
+  if (isHuman()) runCascade(refreshColumnaOptions);
 }
 
 function collectDatos() {
   const datos = [];
   for (const row of document.querySelectorAll("#a-datos .dato-row")) {
-    const columna = row.querySelector(".d-columna").value.trim();
+    const columna = isHuman()
+      ? row.querySelector(".d-columna-sel").value
+      : row.querySelector(".d-columna").value.trim();
     const operador = row.querySelector(".d-operador").value.trim();
     const valor = row.querySelector(".d-valor").value.trim();
     const fecha = row.querySelector(".d-fecha").value.trim();
@@ -241,12 +242,8 @@ function collectDatos() {
   return datos;
 }
 
-function splitInts(raw) {
-  return raw.split(",").map((s) => s.trim()).filter(Boolean).map(Number);
-}
-
 async function advancedSearch() {
-  const areaStr = $("a-area").value.trim();
+  const areaStr = singleVal("a-area", "a-area-sel");
   if (!areaStr) {
     $("json-output").innerHTML = "";
     appendJson("advanced/search — not sent", null, { error: "area is required" });
@@ -258,8 +255,8 @@ async function advancedSearch() {
   const body = {
     area: Number(areaStr),
     datos: collectDatos(),
-    gacetas: splitInts($("a-gacetas").value),
-    secciones: splitInts($("a-secciones").value),
+    gacetas: multiVals("a-gacetas", "a-gacetas-sel").map(Number),
+    secciones: multiVals("a-secciones", "a-secciones-sel").map(Number),
     fecha_desde: fd || null,
     fecha_hasta: fh || null,
     recaptcha: $("a-recaptcha").value.trim(),
@@ -302,6 +299,140 @@ async function runHelper(url, outId) {
   el.appendChild(jsonBlock(`GET ${url}`, res.status, data));
 }
 
+// --- human mode (cascading id pickers) --------------------------------------
+function isHuman() {
+  return document.body.classList.contains("human-mode");
+}
+
+function getSelected(sel) {
+  return Array.from(sel.selectedOptions)
+    .map((o) => o.value)
+    .filter((v) => v !== "");
+}
+
+// Read a value as raw text or, in human mode, from the paired <select>.
+function singleVal(rawId, selId) {
+  return isHuman() ? getSelected($(selId))[0] || "" : $(rawId).value.trim();
+}
+
+function multiVals(rawId, selId) {
+  return isHuman()
+    ? getSelected($(selId))
+    : $(rawId).value.split(",").map((s) => s.trim()).filter(Boolean);
+}
+
+// Helper GETs are cached by URL — the same selection never refetches.
+const helperCache = new Map();
+async function getJSON(url) {
+  if (helperCache.has(url)) return helperCache.get(url);
+  const res = await fetch(url);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+  helperCache.set(url, data);
+  return data;
+}
+
+function qs(pairs) {
+  const parts = [];
+  for (const [key, vals] of pairs) {
+    for (const v of vals) parts.push(`${key}=${encodeURIComponent(v)}`);
+  }
+  return parts.length ? `?${parts.join("&")}` : "";
+}
+
+const asOptions = (rows) => rows.map((r) => ({ value: r.id, label: r.name }));
+
+// Rebuild a <select>, re-selecting any prior choices whose value survived.
+// That survival is the R3 prune: values no longer offered simply drop.
+function fillSelect(sel, options, multi, placeholder) {
+  const keep = new Set(getSelected(sel));
+  sel.innerHTML = "";
+  if (!multi) {
+    const blank = document.createElement("option");
+    blank.value = "";
+    blank.textContent = placeholder || "— any —";
+    sel.appendChild(blank);
+  }
+  for (const o of options) {
+    const opt = document.createElement("option");
+    opt.value = String(o.value);
+    opt.textContent = o.label;
+    if (keep.has(opt.value)) opt.selected = true;
+    sel.appendChild(opt);
+  }
+}
+
+// Native <select multiple> needs ctrl-click and wipes the selection on a plain
+// click. Make a plain click toggle the option instead, leaving the rest alone.
+function enableClickToggle(sel) {
+  sel.addEventListener("mousedown", (e) => {
+    if (e.target.tagName !== "OPTION") return;
+    e.preventDefault();
+    e.target.selected = !e.target.selected;
+    sel.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+}
+
+async function copiesCascade() {
+  const areas = getSelected($("c-area-sel"));
+  const gacetas = await getJSON(`${API}/advanced/gacetas${qs([["area", areas]])}`);
+  fillSelect($("c-gaceta-sel"), asOptions(gacetas), false);
+}
+
+async function recordsCascade() {
+  const areas = getSelected($("r-area-sel"));
+  const gacetas = await getJSON(`${API}/advanced/gacetas${qs([["area", areas]])}`);
+  fillSelect($("r-gacetas-sel"), asOptions(gacetas), true);
+}
+
+async function advancedFromArea() {
+  const areas = getSelected($("a-area-sel"));
+  const gacetas = await getJSON(`${API}/advanced/gacetas${qs([["area", areas]])}`);
+  fillSelect($("a-gacetas-sel"), asOptions(gacetas), true);
+  await advancedFromGacetas();
+}
+
+async function advancedFromGacetas() {
+  const gacetas = getSelected($("a-gacetas-sel"));
+  const secciones = await getJSON(`${API}/advanced/secciones${qs([["gaceta", gacetas]])}`);
+  fillSelect($("a-secciones-sel"), asOptions(secciones), true);
+  await refreshColumnaOptions();
+}
+
+async function refreshColumnaOptions() {
+  const gacetas = getSelected($("a-gacetas-sel"));
+  const secciones = getSelected($("a-secciones-sel"));
+  const url = `${API}/advanced/columnas${qs([
+    ["gaceta", gacetas],
+    ["seccion", secciones],
+  ])}`;
+  const cols = await getJSON(url);
+  const opts = cols.map((c) => ({ value: c.name, label: c.label }));
+  for (const sel of document.querySelectorAll("#a-datos .d-columna-sel")) {
+    fillSelect(sel, opts, false, "— columna —");
+  }
+}
+
+async function runCascade(fn) {
+  try {
+    await fn();
+  } catch (e) {
+    appendJson("human-mode load failed", null, { error: e.message });
+  }
+}
+
+let areasLoaded = false;
+async function enterHumanMode() {
+  if (!areasLoaded) {
+    const opts = asOptions(await getJSON(`${API}/advanced/areas`));
+    fillSelect($("c-area-sel"), opts, false);
+    fillSelect($("r-area-sel"), opts, false);
+    fillSelect($("a-area-sel"), opts, false);
+    areasLoaded = true;
+  }
+  await Promise.all([copiesCascade(), recordsCascade(), advancedFromArea()]);
+}
+
 // --- wiring -----------------------------------------------------------------
 addDatoRow(); // start with one term row
 
@@ -321,3 +452,16 @@ $("h-secciones").addEventListener("click", () => {
   const g = $("h-secciones-gaceta").value.trim();
   runHelper(`${API}/advanced/secciones?gaceta=${encodeURIComponent(g)}`, "h-secciones-out");
 });
+
+$("mode-toggle").addEventListener("change", (e) => {
+  document.body.classList.toggle("human-mode", e.target.checked);
+  if (e.target.checked) runCascade(enterHumanMode);
+});
+$("c-area-sel").addEventListener("change", () => runCascade(copiesCascade));
+$("r-area-sel").addEventListener("change", () => runCascade(recordsCascade));
+$("a-area-sel").addEventListener("change", () => runCascade(advancedFromArea));
+$("a-gacetas-sel").addEventListener("change", () => runCascade(advancedFromGacetas));
+$("a-secciones-sel").addEventListener("change", () => runCascade(refreshColumnaOptions));
+["r-gacetas-sel", "a-gacetas-sel", "a-secciones-sel"].forEach((id) =>
+  enableClickToggle($(id))
+);
