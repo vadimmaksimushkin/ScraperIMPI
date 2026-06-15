@@ -4,7 +4,7 @@ import os
 import sys
 import uuid
 from contextlib import asynccontextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Any
@@ -22,6 +22,8 @@ from config import (
     CLEANUP_INTERVAL_SECONDS,
 )
 from home_download import download_archive
+import copies_search
+from constants import Area, Gaceta
 
 log = logging.getLogger("siga.api")
 logging.basicConfig(
@@ -217,6 +219,86 @@ async def home_download_file(token: str) -> FileResponse:
     return FileResponse(
         path, media_type="application/zip", filename=row["source_filename"]
     )
+
+
+# ---------------------------------------------------------------------------
+# Copies (Ejemplares) search
+# ---------------------------------------------------------------------------
+def _resolve_area(area_id: int) -> Area:
+    try:
+        return Area(area_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"unknown area id: {area_id}")
+
+
+def _resolve_gaceta(area: Area, gaceta_id: int) -> Gaceta:
+    # scope by area so duplicate id_gaceta values across areas can't collide
+    gaceta = next(
+        (g for g in Gaceta if g.area is area and g.id_gaceta == gaceta_id), None
+    )
+    if gaceta is None:
+        raise HTTPException(
+            status_code=400,
+            detail=f"unknown gaceta id {gaceta_id} for area {area.name}",
+        )
+    return gaceta
+
+
+def _count_entries(res: Any) -> int | None:
+    """GetEjemplares returns data as a list; GetEjemplaresArrayByFecha returns it
+    as a dict of lists. Size by type; None if the body isn't the expected shape."""
+    if not isinstance(res, dict):
+        return None
+    data = res.get("data")
+    if isinstance(data, list):
+        return len(data)
+    if isinstance(data, dict):
+        return sum(len(v) for v in data.values() if isinstance(v, list))
+    return 0
+
+
+@app.get(f"{API_PREFIX}/copies/search")
+async def copies_search_endpoint(
+    area: int,
+    gaceta: int | None = None,
+    fecha_desde: date | None = None,
+    fecha_hasta: date | None = None,
+    recaptcha: str = "",
+) -> JSONResponse:
+    """Ejemplares search. Routes to GetEjemplares (by gaceta) or
+    GetEjemplaresArrayByFecha (by date range) inside copies_search; SIGA's status
+    and body are mirrored straight back to the caller (this is a test server)."""
+    area_enum = _resolve_area(area)
+    gaceta_enum = _resolve_gaceta(area_enum, gaceta) if gaceta is not None else None
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            status, res = await copies_search.search(
+                session=session,
+                area=area_enum,
+                gaceta=gaceta_enum,
+                fecha_desde=fecha_desde,
+                fecha_hasta=fecha_hasta,
+                recaptcha=recaptcha,
+            )
+    except ValueError as exc:  # input_validation rejected the params
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    response = JSONResponse(status_code=status, content=res)
+    await db.log_upstream(
+        request={
+            "area": area,
+            "gaceta": gaceta,
+            "fecha_desde": str(fecha_desde) if fecha_desde else None,
+            "fecha_hasta": str(fecha_hasta) if fecha_hasta else None,
+        },
+        response_meta={
+            "http_status": status,
+            "num_entries": _count_entries(res),
+            "bytes": len(response.body),
+        },
+    )
+    return response
 
 
 if __name__ == "__main__":

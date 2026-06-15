@@ -161,7 +161,12 @@ if __name__ == "__main__":
                 fecha_hasta=fecha_hasta,
             )
             log.info(status)
-            log.info(len(res.get("data", [])))
+            data_dict: dict[str, Any] =res.get("data", {})
+            total_length = 0
+            for k, v in data_dict.items():
+                total_length += len(v)
+                log.info(f"{k}: {len(v)}")
+            log.info(f"data total lenght {total_length}")
 
 
     async def test_full() -> None:
@@ -181,8 +186,8 @@ if __name__ == "__main__":
             log.info(status)
             log.info(len(res.get("data", [])))
 
-    asyncio.run(test())
-    asyncio.run(asyncio.sleep(10))
+    # asyncio.run(test())
+    # asyncio.run(asyncio.sleep(10))
     asyncio.run(test_array_by_fecha())
-    asyncio.run(asyncio.sleep(10))
-    asyncio.run(test_full())
+    # asyncio.run(asyncio.sleep(10))
+    # asyncio.run(test_full())
