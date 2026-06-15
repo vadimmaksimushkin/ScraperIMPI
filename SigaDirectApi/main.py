@@ -23,6 +23,7 @@ from config import (
 )
 from home_download import download_archive
 import copies_search
+import records_search
 from constants import Area, Gaceta
 
 log = logging.getLogger("siga.api")
@@ -289,6 +290,60 @@ async def copies_search_endpoint(
         request={
             "area": area,
             "gaceta": gaceta,
+            "fecha_desde": str(fecha_desde) if fecha_desde else None,
+            "fecha_hasta": str(fecha_hasta) if fecha_hasta else None,
+        },
+        response_meta={
+            "http_status": status,
+            "num_entries": _count_entries(res),
+            "bytes": len(response.body),
+        },
+    )
+    return response
+
+
+# ---------------------------------------------------------------------------
+# Records (Fichas) search
+# ---------------------------------------------------------------------------
+@app.get(f"{API_PREFIX}/records/search")
+async def records_search_endpoint(
+    busqueda: int,
+    area: int | None = None,
+    gacetas: list[int] | None = Query(default=None),
+    fecha_desde: date | None = None,
+    fecha_hasta: date | None = None,
+    recaptcha: str = "",
+) -> JSONResponse:
+    """Fichas search (BusquedaFicha/GetFichas). busqueda is required; area and
+    gacetas are optional but scoped together (both or neither). SIGA's status and
+    body are mirrored straight back to the caller."""
+    area_enum = _resolve_area(area) if area is not None else None
+    gaceta_enums: list[Gaceta] | None = None
+    if gacetas is not None:
+        if area_enum is None:
+            raise HTTPException(status_code=400, detail="gacetas require area")
+        gaceta_enums = [_resolve_gaceta(area_enum, gid) for gid in gacetas]
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            status, res = await records_search.search(
+                session=session,
+                busqueda=busqueda,
+                area=area_enum,
+                gacetas=gaceta_enums,
+                fecha_desde=fecha_desde,
+                fecha_hasta=fecha_hasta,
+                recaptcha=recaptcha,
+            )
+    except ValueError as exc:  # input_validation rejected the params
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    response = JSONResponse(status_code=status, content=res)
+    await db.log_upstream(
+        request={
+            "busqueda": busqueda,
+            "area": area,
+            "gacetas": gacetas,
             "fecha_desde": str(fecha_desde) if fecha_desde else None,
             "fecha_hasta": str(fecha_hasta) if fecha_hasta else None,
         },
