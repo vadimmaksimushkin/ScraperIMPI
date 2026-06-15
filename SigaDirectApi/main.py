@@ -27,7 +27,16 @@ from home_download import download_archive
 import copies_search
 import records_search
 import advanced_search
-from constants import Area, Columna, Dato, Gaceta, Operador, Seccion
+from constants import (
+    Area,
+    Columna,
+    Dato,
+    Gaceta,
+    Operador,
+    Seccion,
+    GACETA_COLUMNAS,
+    SECCION_COLUMNAS,
+)
 
 log = logging.getLogger("siga.api")
 logging.basicConfig(
@@ -422,24 +431,87 @@ async def advanced_areas() -> list[dict[str, Any]]:
 
 
 @app.get(f"{API_PREFIX}/advanced/gacetas")
-async def advanced_gacetas(area: int) -> list[dict[str, Any]]:
-    """Gacetas in the given area — numeric ids, as the search endpoint expects."""
-    area_enum = _resolve_area(area)
+async def advanced_gacetas(
+    area: list[int] = Query(default=[]),
+) -> list[dict[str, Any]]:
+    """Gacetas in the given area(s); all gacetas when no area is given."""
+    if area:
+        areas = {_resolve_area(a) for a in area}
+        gacetas: Any = (g for g in Gaceta if g.area in areas)
+    else:
+        gacetas = iter(Gaceta)
     return sorted(
-        ({"id": g.id_gaceta, "name": g.name} for g in Gaceta if g.area is area_enum),
+        ({"id": g.id_gaceta, "name": g.name} for g in gacetas),
         key=lambda row: row["name"],
     )
 
 
 @app.get(f"{API_PREFIX}/advanced/secciones")
-async def advanced_secciones(gaceta: int) -> list[dict[str, Any]]:
-    """Secciones within the given gaceta (gaceta ids are globally unique)."""
-    gaceta_enum = next((g for g in Gaceta if g.id_gaceta == gaceta), None)
-    if gaceta_enum is None:
-        raise HTTPException(status_code=400, detail=f"unknown gaceta id: {gaceta}")
+async def advanced_secciones(
+    gaceta: list[int] = Query(default=[]),
+) -> list[dict[str, Any]]:
+    """Secciones within the given gaceta(s); all secciones when none given.
+    (gaceta ids are globally unique.)"""
+    if gaceta:
+        known = {g.id_gaceta for g in Gaceta}
+        unknown = [gid for gid in gaceta if gid not in known]
+        if unknown:
+            raise HTTPException(
+                status_code=400, detail=f"unknown gaceta id(s): {unknown}"
+            )
+        wanted = set(gaceta)
+        secciones: Any = (s for s in Seccion if s.gaceta.id_gaceta in wanted)
+    else:
+        secciones = iter(Seccion)
     return sorted(
-        ({"id": s.id_seccion, "name": s.name} for s in Seccion if s.gaceta is gaceta_enum),
+        ({"id": s.id_seccion, "name": s.name} for s in secciones),
         key=lambda row: row["name"],
+    )
+
+
+@app.get(f"{API_PREFIX}/advanced/columnas")
+async def advanced_columnas(
+    gaceta: list[int] = Query(default=[]),
+    seccion: list[int] = Query(default=[]),
+) -> list[dict[str, Any]]:
+    """Columnas searchable across ALL the given gacetas and secciones
+    (intersection, matching the structured-search validation). All columnas
+    when neither is given. `name` is what advanced/search expects in a term."""
+    valid: set[Columna] | None = None
+
+    if gaceta:
+        by_gaceta = {g.id_gaceta: g for g in Gaceta}
+        for gid in gaceta:
+            g = by_gaceta.get(gid)
+            if g is None:
+                raise HTTPException(status_code=400, detail=f"unknown gaceta id: {gid}")
+            cols = GACETA_COLUMNAS.get(g, set())
+            valid = cols if valid is None else (valid & cols)
+
+    if seccion:
+        by_seccion = {s.id_seccion: s for s in Seccion}
+        for sid in seccion:
+            s = by_seccion.get(sid)
+            if s is None:
+                raise HTTPException(
+                    status_code=400, detail=f"unknown seccion id: {sid}"
+                )
+            cols = SECCION_COLUMNAS.get(s, set())
+            valid = cols if valid is None else (valid & cols)
+
+    if valid is None:
+        valid = set(Columna)
+
+    return sorted(
+        (
+            {
+                "name": c.name,
+                "label": c.columna,
+                "kind": c.kind.value if hasattr(c.kind, "value") else str(c.kind),
+            }
+            for c in valid
+        ),
+        key=lambda row: row["label"],
     )
 
 
