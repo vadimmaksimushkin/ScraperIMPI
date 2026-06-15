@@ -13,6 +13,7 @@ import aiohttp
 import uvicorn
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, JSONResponse
+from pydantic import BaseModel
 
 import db
 from config import (
@@ -24,7 +25,8 @@ from config import (
 from home_download import download_archive
 import copies_search
 import records_search
-from constants import Area, Gaceta
+import advanced_search
+from constants import Area, Columna, Dato, Gaceta, Operador, Seccion
 
 log = logging.getLogger("siga.api")
 logging.basicConfig(
@@ -347,6 +349,127 @@ async def records_search_endpoint(
             "fecha_desde": str(fecha_desde) if fecha_desde else None,
             "fecha_hasta": str(fecha_hasta) if fecha_hasta else None,
         },
+        response_meta={
+            "http_status": status,
+            "num_entries": _count_entries(res),
+            "bytes": len(response.body),
+        },
+    )
+    return response
+
+
+# ---------------------------------------------------------------------------
+# Advanced (Estructurada) search -- POST: valor can be large, datos is structured
+# ---------------------------------------------------------------------------
+class Term(BaseModel):
+    columna: str                 # Columna enum name, e.g. "CLASE"
+    operador: str = ""           # "" for the first term; AND/OR/NOT for the next
+    valor: str = ""              # for VALOR-kind columns
+    fecha: date | None = None    # for FECHA-kind columns
+
+
+class AdvancedSearchRequest(BaseModel):
+    area: int
+    datos: list[Term]
+    gacetas: list[int] = []
+    secciones: list[int] = []
+    fecha_desde: date | None = None
+    fecha_hasta: date | None = None
+    recaptcha: str = ""
+
+
+def _resolve_seccion(area: Area, seccion_id: int) -> Seccion:
+    # scope by area so duplicate id_seccion values across areas can't collide
+    seccion = next(
+        (s for s in Seccion if s.gaceta.area is area and s.id_seccion == seccion_id),
+        None,
+    )
+    if seccion is None:
+        raise HTTPException(
+            status_code=400,
+            detail=f"unknown seccion id {seccion_id} for area {area.name}",
+        )
+    return seccion
+
+
+def _build_dato(term: Term) -> Dato:
+    try:
+        columna = Columna[term.columna]
+    except KeyError:
+        raise HTTPException(status_code=400, detail=f"unknown columna: {term.columna}")
+    try:
+        operador = Operador(term.operador)
+    except ValueError:
+        raise HTTPException(
+            status_code=400, detail=f"unknown operador: {term.operador!r}"
+        )
+    try:
+        # Dato validates valor/fecha against the column's Kind on construction
+        return Dato(
+            operador=operador, columna=columna, valor=term.valor, fecha=term.fecha
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@app.get(f"{API_PREFIX}/advanced/areas")
+async def advanced_areas() -> list[dict[str, Any]]:
+    """Selectable areas (the AREA_7/AREA_8 placeholders are excluded)."""
+    return [
+        {"id": a.value, "name": a.name} for a in Area if not a.name.startswith("AREA_")
+    ]
+
+
+@app.get(f"{API_PREFIX}/advanced/gacetas")
+async def advanced_gacetas(area: int) -> list[dict[str, Any]]:
+    """Gacetas in the given area — numeric ids, as the search endpoint expects."""
+    area_enum = _resolve_area(area)
+    return sorted(
+        ({"id": g.id_gaceta, "name": g.name} for g in Gaceta if g.area is area_enum),
+        key=lambda row: row["name"],
+    )
+
+
+@app.get(f"{API_PREFIX}/advanced/secciones")
+async def advanced_secciones(gaceta: int) -> list[dict[str, Any]]:
+    """Secciones within the given gaceta (gaceta ids are globally unique)."""
+    gaceta_enum = next((g for g in Gaceta if g.id_gaceta == gaceta), None)
+    if gaceta_enum is None:
+        raise HTTPException(status_code=400, detail=f"unknown gaceta id: {gaceta}")
+    return sorted(
+        ({"id": s.id_seccion, "name": s.name} for s in Seccion if s.gaceta is gaceta_enum),
+        key=lambda row: row["name"],
+    )
+
+
+@app.post(f"{API_PREFIX}/advanced/search")
+async def advanced_search_endpoint(body: AdvancedSearchRequest) -> JSONResponse:
+    """Estructurada search (BusquedaEstructurada/GetSearchEstructurada). POST
+    because valor can be large and datos is structured. SIGA's status and body
+    are mirrored straight back to the caller."""
+    area_enum = _resolve_area(body.area)
+    gaceta_enums = [_resolve_gaceta(area_enum, gid) for gid in body.gacetas]
+    seccion_enums = [_resolve_seccion(area_enum, sid) for sid in body.secciones]
+    datos = [_build_dato(term) for term in body.datos]
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            status, res = await advanced_search.search(
+                session=session,
+                area=area_enum,
+                gacetas=gaceta_enums,
+                secciones=seccion_enums,
+                datos=datos,
+                fecha_desde=body.fecha_desde,
+                fecha_hasta=body.fecha_hasta,
+                recaptcha=body.recaptcha,
+            )
+    except ValueError as exc:  # input_validation rejected the params
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    response = JSONResponse(status_code=status, content=res)
+    await db.log_upstream(
+        request=body.model_dump(mode="json"),
         response_meta={
             "http_status": status,
             "num_entries": _count_entries(res),
