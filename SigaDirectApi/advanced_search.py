@@ -94,7 +94,7 @@ def input_validation( # NOSONAR
             )
             return False, message
 
-    # datos: 1 or 2 terms; first operador is empty, second non-empty
+    # datos: 1 or 2 datos; first operador is empty, second non-empty
     if not datos:
         return False, "at least one dato is required"
     if len(datos) > 2:

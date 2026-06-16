@@ -65,9 +65,6 @@ def _spawn(coro) -> None:
     task.add_done_callback(_tasks.discard)
 
 
-# ---------------------------------------------------------------------------
-# Background work
-# ---------------------------------------------------------------------------
 async def _run_job(job_id: str, items: list[tuple[str, str]]) -> None:
     """Fetch each requested archive type, updating its download row as it lands.
     One aiohttp session per job keeps the antiforgery cookie jar free of the
@@ -137,9 +134,6 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="SIGA Direct API", lifespan=lifespan)
 
 
-# ---------------------------------------------------------------------------
-# Endpoints
-# ---------------------------------------------------------------------------
 @app.get(f"{API_PREFIX}/home/today")
 async def home_today(
     request: Request,
@@ -234,9 +228,6 @@ async def home_download_file(token: str) -> FileResponse:
     )
 
 
-# ---------------------------------------------------------------------------
-# Copies (Ejemplares) search
-# ---------------------------------------------------------------------------
 def _resolve_area(area_id: int) -> Area:
     try:
         return Area(area_id)
@@ -314,9 +305,6 @@ async def copies_search_endpoint(
     return response
 
 
-# ---------------------------------------------------------------------------
-# Records (Fichas) search
-# ---------------------------------------------------------------------------
 @app.get(f"{API_PREFIX}/records/search")
 async def records_search_endpoint(
     busqueda: int,
@@ -368,19 +356,16 @@ async def records_search_endpoint(
     return response
 
 
-# ---------------------------------------------------------------------------
-# Advanced (Estructurada) search -- POST: valor can be large, datos is structured
-# ---------------------------------------------------------------------------
-class Term(BaseModel):
+class DatoInput(BaseModel):
     columna: str                 # Columna enum name, e.g. "CLASE"
-    operador: str = ""           # "" for the first term; AND/OR/NOT for the next
+    operador: str = ""           # "" for the first dato; AND/OR/NOT for the next
     valor: str = ""              # for VALOR-kind columns
     fecha: date | None = None    # for FECHA-kind columns
 
 
 class AdvancedSearchRequest(BaseModel):
     area: int
-    datos: list[Term]
+    datos: list[DatoInput]
     gacetas: list[int] = []
     secciones: list[int] = []
     fecha_desde: date | None = None
@@ -402,21 +387,21 @@ def _resolve_seccion(area: Area, seccion_id: int) -> Seccion:
     return seccion
 
 
-def _build_dato(term: Term) -> Dato:
+def _build_dato(dato: DatoInput) -> Dato:
     try:
-        columna = Columna[term.columna]
+        columna = Columna[dato.columna]
     except KeyError:
-        raise HTTPException(status_code=400, detail=f"unknown columna: {term.columna}")
+        raise HTTPException(status_code=400, detail=f"unknown columna: {dato.columna}")
     try:
-        operador = Operador(term.operador)
+        operador = Operador(dato.operador)
     except ValueError:
         raise HTTPException(
-            status_code=400, detail=f"unknown operador: {term.operador!r}"
+            status_code=400, detail=f"unknown operador: {dato.operador!r}"
         )
     try:
         # Dato validates valor/fecha against the column's Kind on construction
         return Dato(
-            operador=operador, columna=columna, valor=term.valor, fecha=term.fecha
+            operador=operador, columna=columna, valor=dato.valor, fecha=dato.fecha
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
@@ -476,7 +461,7 @@ async def advanced_columnas(
 ) -> list[dict[str, Any]]:
     """Columnas searchable across ALL the given gacetas and secciones
     (intersection, matching the structured-search validation). All columnas
-    when neither is given. `name` is what advanced/search expects in a term."""
+    when neither is given. `name` is what advanced/search expects in a dato."""
     valid: set[Columna] | None = None
 
     if gaceta:
@@ -523,7 +508,7 @@ async def advanced_search_endpoint(body: AdvancedSearchRequest) -> JSONResponse:
     area_enum = _resolve_area(body.area)
     gaceta_enums = [_resolve_gaceta(area_enum, gid) for gid in body.gacetas]
     seccion_enums = [_resolve_seccion(area_enum, sid) for sid in body.secciones]
-    datos = [_build_dato(term) for term in body.datos]
+    datos = [_build_dato(dato) for dato in body.datos]
 
     try:
         async with aiohttp.ClientSession() as session:
@@ -552,10 +537,6 @@ async def advanced_search_endpoint(body: AdvancedSearchRequest) -> JSONResponse:
     return response
 
 
-# ---------------------------------------------------------------------------
-# Static test console (index.html + script.js), served at GET /.
-# Mounted last so it only catches paths the API routes and /docs don't.
-# ---------------------------------------------------------------------------
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
 

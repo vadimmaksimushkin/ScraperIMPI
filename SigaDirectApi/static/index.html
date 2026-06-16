@@ -4,168 +4,6 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SIGA Direct API — Test Console</title>
-  <style>
-    :root {
-      --bg: #f6f7f9;
-      --card: #ffffff;
-      --border: #dfe3e8;
-      --ink: #1f2933;
-      --muted: #6b7280;
-      --accent: #2563eb;
-      --ok: #15803d;
-      --err: #b91c1c;
-      --run: #b45309;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      background: var(--bg);
-      color: var(--ink);
-      line-height: 1.45;
-    }
-    header {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: 1rem;
-      padding: 1rem 1.5rem;
-      background: var(--card);
-      border-bottom: 1px solid var(--border);
-    }
-    header h1 { font-size: 1.1rem; margin: 0; }
-    header a { color: var(--accent); text-decoration: none; font-size: .9rem; }
-    header a:hover { text-decoration: underline; }
-    .header-right { display: flex; align-items: center; gap: 1.1rem; }
-    .switch {
-      display: inline-flex; align-items: center; gap: .4rem;
-      font-size: .85rem; color: var(--ink); cursor: pointer; user-select: none;
-    }
-    .switch input { cursor: pointer; margin: 0; }
-    main { max-width: 880px; margin: 1.5rem auto; padding: 0 1.5rem; }
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 1.25rem;
-      margin-bottom: 1.25rem;
-    }
-    .card h2 { margin: 0 0 .5rem; font-size: 1rem; }
-    .hint { color: var(--muted); font-size: .85rem; margin: 0 0 1rem; }
-    .hint code { background: var(--bg); padding: .1rem .3rem; border-radius: 4px; }
-    .row { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
-    .field { display: flex; align-items: center; gap: .75rem; margin-bottom: .55rem; }
-    .field label { width: 96px; flex: none; text-align: right; }
-    .field input { flex: 1; }
-    label { font-size: .85rem; color: var(--muted); font-family: ui-monospace, monospace; }
-    input[type="text"] {
-      flex: 1;
-      min-width: 160px;
-      padding: .5rem .6rem;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      font-size: .95rem;
-      font-family: ui-monospace, monospace;
-    }
-    select {
-      flex: 1;
-      min-width: 0;
-      padding: .5rem .6rem;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      font-size: .9rem;
-      font-family: ui-monospace, monospace;
-      background: #fff;
-      color: var(--ink);
-    }
-    select[multiple] { min-height: 104px; }
-    /* raw ⇄ human mode visibility */
-    .human-only { display: none; }
-    body.human-mode .raw-only { display: none; }
-    body.human-mode .field.human-only { display: flex; }
-    body.human-mode .dato-row .human-only { display: block; }
-    button {
-      padding: .5rem 1.1rem;
-      border: none;
-      border-radius: 6px;
-      background: var(--accent);
-      color: #fff;
-      font-size: .9rem;
-      cursor: pointer;
-    }
-    button:hover { background: #1d4ed8; }
-    button:disabled { opacity: .55; cursor: default; }
-    .btn-secondary { background: #475569; }
-    .btn-secondary:hover { background: #334155; }
-    .subtitle {
-      margin: 1.4rem 0 .5rem;
-      font-size: .75rem;
-      text-transform: uppercase;
-      letter-spacing: .06em;
-      color: var(--muted);
-      font-family: ui-monospace, monospace;
-    }
-    .dato-row { display: flex; gap: .5rem; margin-bottom: .5rem; }
-    .dato-row input { min-width: 0; }
-    .d-remove { flex: none; background: #b91c1c; padding: .4rem .7rem; }
-    .d-remove:hover { background: #991b1b; }
-    .helper { margin-bottom: 1.1rem; }
-    .h-label { width: 84px; flex: none; font-family: ui-monospace, monospace; font-size: .85rem; }
-    .helper-out { max-height: 220px; margin-top: .5rem; }
-    .helper-out:empty::after { content: "Run to load."; }
-    .status {
-      margin-top: 1rem;
-      font-size: .9rem;
-      font-weight: 600;
-    }
-    .status.idle { color: var(--muted); }
-    .status.running { color: var(--run); }
-    .status.ready { color: var(--ok); }
-    .status.error { color: var(--err); }
-    .downloads { display: flex; flex-direction: column; gap: .5rem; margin-top: .75rem; }
-    .download-btn {
-      display: inline-block;
-      align-self: flex-start;
-      padding: .45rem .9rem;
-      background: var(--ok);
-      color: #fff;
-      border-radius: 6px;
-      text-decoration: none;
-      font-size: .88rem;
-    }
-    .download-btn:hover { background: #166534; }
-    .json-output {
-      max-height: 480px;
-      overflow-y: auto;
-      background: #0f172a;
-      border-radius: 6px;
-      padding: .5rem;
-    }
-    .json-output:empty::after {
-      content: "No requests yet.";
-      color: #64748b;
-      font-size: .85rem;
-      display: block;
-      padding: .5rem;
-    }
-    .json-block { margin-bottom: .5rem; }
-    .json-label {
-      color: #93c5fd;
-      font-family: ui-monospace, monospace;
-      font-size: .78rem;
-      padding: .25rem .4rem;
-    }
-    .json-label .status-code { color: #fbbf24; }
-    .json-output pre {
-      margin: 0;
-      padding: .5rem .6rem;
-      color: #e2e8f0;
-      font-family: ui-monospace, monospace;
-      font-size: .82rem;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-  </style>
 </head>
 <body>
   <header>
@@ -174,15 +12,16 @@
       <label class="switch">
         <input type="checkbox" id="mode-toggle" /> Human mode
       </label>
-      <a href="/docs" target="_blank" rel="noopener">FastAPI docs ↗</a>
+      <a href="/docs" target="_blank" rel="noopener">FastAPI docs</a>
     </div>
   </header>
 
   <main>
     <section class="card">
-      <h2>Home download</h2>
+      <h2>Home download <button type="button" class="section-toggle">Hide</button></h2>
+      <div class="section-body">
       <p class="hint">
-        Kick off today's archive build, poll the job, then download.
+        Send download request(s), poll the job, then download.
         Comma-separate types, e.g. <code>xlsx,pdf</code>.
       </p>
       <div class="row">
@@ -192,12 +31,14 @@
       </div>
       <div id="status" class="status idle">Idle</div>
       <div id="downloads" class="downloads"></div>
+      </div>
     </section>
 
     <section class="card">
-      <h2>Copies search</h2>
+      <h2>Copies search (Ejemplares) <button type="button" class="section-toggle">Hide</button></h2>
+      <div class="section-body">
       <p class="hint">
-        Ejemplares search. <code>area</code> is required; pass a <code>gaceta</code> id,
+        <code>area</code> is required; pass a <code>gaceta</code> id,
         or a <code>fecha_desde</code>/<code>fecha_hasta</code> range. Dates are
         <code>YYYY-MM-DD</code>.
       </p>
@@ -205,7 +46,7 @@
         <label for="c-area">area</label>
         <input id="c-area" type="text" placeholder="e.g. 1 (PATENTES)" />
       </div>
-      <div class="field human-only">
+      <div class="field human-only" hidden>
         <label for="c-area-sel">area</label>
         <select id="c-area-sel"></select>
       </div>
@@ -213,7 +54,7 @@
         <label for="c-gaceta">gaceta</label>
         <input id="c-gaceta" type="text" placeholder="optional id, e.g. 2" />
       </div>
-      <div class="field human-only">
+      <div class="field human-only" hidden>
         <label for="c-gaceta-sel">gaceta</label>
         <select id="c-gaceta-sel"></select>
       </div>
@@ -232,12 +73,14 @@
       <div class="row">
         <button id="c-search">Search</button>
       </div>
+      </div>
     </section>
 
     <section class="card">
-      <h2>Records search</h2>
+      <h2>Records search (Búsqueda en fichas) <button type="button" class="section-toggle">Hide</button></h2>
+      <div class="section-body">
       <p class="hint">
-        Fichas search. <code>busqueda</code> is required (a numeric record id, ≥ 2 digits).
+        <code>busqueda</code> is required (a numeric record id, ≥ 2 digits).
         <code>gacetas</code> is comma-separated and only valid together with <code>area</code>.
         Dates are <code>YYYY-MM-DD</code>.
       </p>
@@ -249,7 +92,7 @@
         <label for="r-area">area</label>
         <input id="r-area" type="text" placeholder="optional, e.g. 2 (MARCAS)" />
       </div>
-      <div class="field human-only">
+      <div class="field human-only" hidden>
         <label for="r-area-sel">area</label>
         <select id="r-area-sel"></select>
       </div>
@@ -257,7 +100,7 @@
         <label for="r-gacetas">gacetas</label>
         <input id="r-gacetas" type="text" placeholder="optional ids, comma-separated; requires area" />
       </div>
-      <div class="field human-only">
+      <div class="field human-only" hidden>
         <label for="r-gacetas-sel">gacetas</label>
         <select id="r-gacetas-sel" multiple></select>
       </div>
@@ -276,30 +119,32 @@
       <div class="row">
         <button id="r-search">Search</button>
       </div>
+      </div>
     </section>
 
     <section class="card">
-      <h2>Advanced search</h2>
+      <h2>Advanced search (Búsqueda especializada) <button type="button" class="section-toggle">Hide</button></h2>
+      <div class="section-body">
       <p class="hint">
-        Estructurada search (POST). <code>area</code> is required. Add 0–N
-        <code>datos</code> terms: leave <code>operador</code> blank on the first,
-        use <code>AND/OR/NOT</code> after; fill <code>valor</code> or <code>fecha</code>
-        per the column's kind. <code>gacetas</code>/<code>secciones</code> are
+        (POST) <code>area</code> is required. Possible to add 0-N
+        <code>datos</code>, api accepts only 1 or 2: <code>operador</code> should be blank on the first,
+        and <code>AND/OR/NOT</code> after; add <code>valor</code> or <code>fecha</code>
+        per the column. <code>gacetas</code>/<code>secciones</code> are
         comma-separated ids. Dates are <code>YYYY-MM-DD</code>.
       </p>
       <div class="field raw-only">
         <label for="a-area">area</label>
         <input id="a-area" type="text" placeholder="e.g. 2 (MARCAS)" />
       </div>
-      <div class="field human-only">
+      <div class="field human-only" hidden>
         <label for="a-area-sel">area</label>
         <select id="a-area-sel"></select>
       </div>
 
-      <p class="subtitle">datos (terms)</p>
+      <p class="subtitle">Datos</p>
       <div id="a-datos"></div>
       <div class="row">
-        <button id="a-add" type="button" class="btn-secondary">+ Add term</button>
+        <button id="a-add" type="button" class="btn-secondary">+ Add Dato</button>
       </div>
 
       <p class="subtitle">filters</p>
@@ -307,7 +152,7 @@
         <label for="a-gacetas">gacetas</label>
         <input id="a-gacetas" type="text" placeholder="optional ids, comma-separated" />
       </div>
-      <div class="field human-only">
+      <div class="field human-only" hidden>
         <label for="a-gacetas-sel">gacetas</label>
         <select id="a-gacetas-sel" multiple></select>
       </div>
@@ -315,7 +160,7 @@
         <label for="a-secciones">secciones</label>
         <input id="a-secciones" type="text" placeholder="optional ids, comma-separated" />
       </div>
-      <div class="field human-only">
+      <div class="field human-only" hidden>
         <label for="a-secciones-sel">secciones</label>
         <select id="a-secciones-sel" multiple></select>
       </div>
@@ -334,11 +179,13 @@
       <div class="row">
         <button id="a-search">Search</button>
       </div>
+      </div>
     </section>
 
     <section class="card">
-      <h2>Advanced helpers</h2>
-      <p class="hint">Look up the numeric ids the advanced search needs. Each runs on its own.</p>
+      <h2>Advanced helpers <button type="button" class="section-toggle">Hide</button></h2>
+      <div class="section-body">
+      <p class="hint">Look up the numeric ids search</p>
 
       <div class="helper">
         <div class="row">
@@ -351,7 +198,7 @@
       <div class="helper">
         <div class="row">
           <strong class="h-label">gacetas</strong>
-          <input id="h-gacetas-area" type="text" placeholder="area id, e.g. 1" />
+          <input id="h-gacetas-area" type="text" placeholder="area ids, comma-separated, e.g. 1,2,3" />
           <button id="h-gacetas" type="button" class="btn-secondary">Get gacetas</button>
         </div>
         <div id="h-gacetas-out" class="json-output helper-out"></div>
@@ -360,10 +207,11 @@
       <div class="helper">
         <div class="row">
           <strong class="h-label">secciones</strong>
-          <input id="h-secciones-gaceta" type="text" placeholder="gaceta id" />
+          <input id="h-secciones-gaceta" type="text" placeholder="gaceta ids, comma-separated" />
           <button id="h-secciones" type="button" class="btn-secondary">Get secciones</button>
         </div>
         <div id="h-secciones-out" class="json-output helper-out"></div>
+      </div>
       </div>
     </section>
 

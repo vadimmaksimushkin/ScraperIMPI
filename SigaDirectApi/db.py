@@ -2,16 +2,10 @@ import json
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Any
-
 import aiosqlite
-
 from config import DB_PATH
 
-# upstream_log: a deliberately loose request/response audit trail (throwaway,
-# schema may change). For /home it records the inbound request + the 202 we send;
-# the search modules will use it for SIGA response metadata.
-# downloads: operational state for the 202/token/TTL flow. One row per requested
-# file; the poll endpoint aggregates rows by job_id.
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS upstream_log (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
