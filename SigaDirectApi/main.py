@@ -3,6 +3,7 @@ import logging
 import os
 import sys
 import uuid
+from collections.abc import Coroutine
 from contextlib import asynccontextmanager
 from datetime import date, datetime, timedelta, timezone
 from enum import Enum
@@ -56,10 +57,10 @@ def _utcnow() -> datetime:
 
 
 # Hold references to fire-and-forget tasks so they aren't garbage-collected mid-run.
-_tasks: set[asyncio.Task] = set()
+_tasks: set[asyncio.Task[None]] = set()
 
 
-def _spawn(coro) -> None:
+def _spawn(coro: Coroutine[Any, Any, None]) -> None:
     task = asyncio.create_task(coro)
     _tasks.add(task)
     task.add_done_callback(_tasks.discard)
@@ -88,7 +89,7 @@ async def _run_job(job_id: str, items: list[tuple[str, str]]) -> None:
                     size_bytes=path.stat().st_size,
                     expires_at=expires_at,
                 )
-            except Exception as exc:  # noqa: BLE001 - record it, keep other types going
+            except Exception as exc:
                 log.exception("download failed job=%s type=%s", job_id, atype)
                 await db.mark_failed(token, str(exc))
 
@@ -178,7 +179,7 @@ async def home_job_status(job_id: str) -> dict[str, Any]:
     failed = [r for r in rows if r["status"] == "failed"]
 
     if ready:
-        files = [
+        files: list[dict[str, Any]] = [
             {
                 "token": r["token"],
                 "type": r["type"],
@@ -253,11 +254,11 @@ def _count_entries(res: Any) -> int | None:
     as a dict of lists. Size by type; None if the body isn't the expected shape."""
     if not isinstance(res, dict):
         return None
-    data = res.get("data")
+    data = res.get("data") # type: ignore
     if isinstance(data, list):
-        return len(data)
+        return len(data) # type: ignore
     if isinstance(data, dict):
-        return sum(len(v) for v in data.values() if isinstance(v, list))
+        return sum(len(v) for v in data.values() if isinstance(v, list)) # type: ignore
     return 0
 
 

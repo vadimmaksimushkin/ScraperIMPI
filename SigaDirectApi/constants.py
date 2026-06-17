@@ -17,6 +17,74 @@ def mexico_today() -> date:
     return datetime.now(MEXICO_TZ).date()
 
 
+# Defensive client-side cap on a free-form search term (Dato.valor). ASP.NET puts
+# no inherent length limit on a JSON string; this only guards an unknown SQL column.
+VALOR_MAX_LEN = 512
+
+
+class Dato:
+    """
+    One search term. Validates valor/fecha against the column kind
+    on construction
+    """
+
+    def __init__( #NOSONAR
+        self,
+        operador: Operador,
+        columna: Columna,
+        valor: str = "",
+        fecha: date | None = None,
+    ) -> None:
+        if columna.kind is Kind.VALOR:
+            if not isinstance(valor, str): # type: ignore
+                message = f"{columna.name}: valor must be a string"
+                raise ValueError(message)
+            if not valor.strip():
+                message = f"{columna.name}: valor must be a non-empty string"
+                raise ValueError(message)
+            if len(valor) > VALOR_MAX_LEN:
+                message = f"{columna.name}: valor must be at most {VALOR_MAX_LEN} characters"
+                raise ValueError(message)
+            if any(ord(char) < 0x20 or ord(char) == 0x7F for char in valor):
+                message = f"{columna.name}: valor must not contain control characters"
+                raise ValueError(message)
+            if fecha is not None:
+                message = f"{columna.name}: fecha must be omitted for a VALOR column"
+                raise ValueError(message)
+        else:  # Kind.FECHA
+            if valor:
+                message = f"{columna.name}: valor must be empty for a FECHA column"
+                raise ValueError(message)
+            if fecha is None:
+                message = f"{columna.name}: fecha is required for a FECHA column"
+                raise ValueError(message)
+            if isinstance(fecha, datetime):  # time-of-day is meaningless; floor to date
+                fecha = fecha.date()
+            if fecha > mexico_today():
+                message = f"{columna.name}: fecha must not be in the future"
+                raise ValueError(message)
+        self.operador = operador
+        self.columna = columna
+        self.valor = valor
+        self.fecha = fecha
+
+    def to_payload(self) -> dict[str, str]:
+        """
+        One entry of the request's `datos` array;
+        fecha as midnight Mexico City (UTC-6)
+        """
+        return {
+            "operador": self.operador.value,
+            "columna": self.columna.columna,
+            "valor": self.valor,
+            "fecha": f"{self.fecha.isoformat()}T06:00:00.000Z" if self.fecha else "",
+        }
+
+    def __repr__(self) -> str:
+        return (f"Dato({self.operador.name}, {self.columna.name}, "
+                f"valor={self.valor!r}, fecha={self.fecha!r})")
+
+
 class RequestMethods(Enum):
     GET = auto()
     HEAD = auto()
@@ -1969,75 +2037,6 @@ GACETA_COLUMNAS: dict[Gaceta, set[Columna]] = {
         Columna.FOLIO_SALIDA,
     },
 }
-
-
-
-# Defensive client-side cap on a free-form search term (Dato.valor). ASP.NET puts
-# no inherent length limit on a JSON string; this only guards an unknown SQL column.
-VALOR_MAX_LEN = 512
-
-
-class Dato:
-    """
-    One search term. Validates valor/fecha against the column kind
-    on construction
-    """
-
-    def __init__(
-        self,
-        operador: Operador,
-        columna: Columna,
-        valor: str = "",
-        fecha: date | None = None,
-    ) -> None:
-        if columna.kind is Kind.VALOR:
-            if not isinstance(valor, str):
-                message = f"{columna.name}: valor must be a string"
-                raise ValueError(message)
-            if not valor.strip():
-                message = f"{columna.name}: valor must be a non-empty string"
-                raise ValueError(message)
-            if len(valor) > VALOR_MAX_LEN:
-                message = f"{columna.name}: valor must be at most {VALOR_MAX_LEN} characters"
-                raise ValueError(message)
-            if any(ord(char) < 0x20 or ord(char) == 0x7F for char in valor):
-                message = f"{columna.name}: valor must not contain control characters"
-                raise ValueError(message)
-            if fecha is not None:
-                message = f"{columna.name}: fecha must be omitted for a VALOR column"
-                raise ValueError(message)
-        else:  # Kind.FECHA
-            if valor:
-                message = f"{columna.name}: valor must be empty for a FECHA column"
-                raise ValueError(message)
-            if fecha is None:
-                message = f"{columna.name}: fecha is required for a FECHA column"
-                raise ValueError(message)
-            if isinstance(fecha, datetime):  # time-of-day is meaningless; floor to date
-                fecha = fecha.date()
-            if fecha > mexico_today():
-                message = f"{columna.name}: fecha must not be in the future"
-                raise ValueError(message)
-        self.operador = operador
-        self.columna = columna
-        self.valor = valor
-        self.fecha = fecha
-
-    def to_payload(self) -> dict[str, str]:
-        """
-        One entry of the request's `datos` array;
-        fecha as midnight Mexico City (UTC-6)
-        """
-        return {
-            "operador": self.operador.value,
-            "columna": self.columna.columna,
-            "valor": self.valor,
-            "fecha": f"{self.fecha.isoformat()}T06:00:00.000Z" if self.fecha else "",
-        }
-
-    def __repr__(self) -> str:
-        return (f"Dato({self.operador.name}, {self.columna.name}, "
-                f"valor={self.valor!r}, fecha={self.fecha!r})")
 
 
 # @dataclass(frozen=True)

@@ -120,7 +120,7 @@ async function pollOnce(statusUrl) {
   if (data.status === 'done') {
     clearInterval(pollTimer);
     $('start').disabled = false;
-    if (data.files && data.files.length) {
+    if (data.files?.length) {
       setStatus('Download is ready', 'ready');
       renderDownloads(data.files);
     } else {

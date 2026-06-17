@@ -186,8 +186,8 @@ if __name__ == "__main__":
             log.info(status)
             log.info(len(res.get("data", [])))
 
-    # asyncio.run(test())
-    # asyncio.run(asyncio.sleep(10))
+    asyncio.run(test())
+    asyncio.run(asyncio.sleep(10))
     asyncio.run(test_array_by_fecha())
-    # asyncio.run(asyncio.sleep(10))
-    # asyncio.run(test_full())
+    asyncio.run(asyncio.sleep(10))
+    asyncio.run(test_full())
