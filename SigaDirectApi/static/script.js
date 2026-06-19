@@ -481,3 +481,7 @@ for (const btn of document.querySelectorAll('.section-toggle')) {
     btn.textContent = body.hidden ? 'Show' : 'Hide';
   });
 }
+
+// Human mode is the default — apply it and load its selects on first paint.
+applyMode(isHuman());
+if (isHuman()) runCascade(enterHumanMode);
