@@ -39,6 +39,13 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+/* The JS toggles raw⇄human and section show/hide via the `hidden` attribute.
+   Our layout rules (display: grid/flex) would otherwise out-rank the UA's
+   `[hidden] { display: none }`, so re-assert it with priority. */
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   font-family: var(--sans);
