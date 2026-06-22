@@ -1,4 +1,4 @@
-import json
+import orjson
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Any
@@ -59,7 +59,7 @@ async def log_upstream(request: dict[str, Any], response_meta: dict[str, Any]) -
     async with _db() as conn:
         await conn.execute(
             "INSERT INTO upstream_log (created_at, request, response_meta) VALUES (?, ?, ?)",
-            (_now(), json.dumps(request), json.dumps(response_meta)),
+            (_now(), orjson.dumps(request), orjson.dumps(response_meta)),
         )
         await conn.commit()
 
