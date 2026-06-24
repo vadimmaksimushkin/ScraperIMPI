@@ -38,6 +38,12 @@ DEFAULT_YEARS_BACK = 20     # how far the pinned lower bound reaches
 DEFAULT_DELAY_SECONDS = 2.0  # politeness delay between pages (per-IP rate limiting)
 
 
+class AntiforgeryError(RuntimeError):
+    """The /antiforgery/token handshake returned no usable cookie/token — usually
+    the anti-bot throttling that endpoint (it answers 403 with no Set-Cookie).
+    Subclasses RuntimeError so existing `except RuntimeError` paths still catch it."""
+
+
 @dataclass
 class TokenPair:
     """A matched antiforgery cookie + request token from one handshake"""
@@ -78,7 +84,7 @@ async def fetch_token_pair(session: aiohttp.ClientSession) -> TokenPair:
         or not request_token
         or not request_token.strip()
     ):
-        raise RuntimeError(
+        raise AntiforgeryError(
             f"Antiforgery handshake failed: cookie={antiforgery!r}"
             f" token={request_token!r}"
         )
@@ -106,6 +112,30 @@ async def request_with_token(
         data=orjson.dumps(payload) if payload is not None else None,
     )
 
+    text = await res.text()
+    try:
+        return res.status, orjson.loads(text)
+    except orjson.JSONDecodeError:
+        return res.status, text
+
+
+async def request_no_token(
+    session: aiohttp.ClientSession,
+    method: RequestMethods,
+    url: str,
+    payload: dict[str, Any] | None,
+) -> tuple[int, Any]:
+    """Like request_with_token, but skips the antiforgery handshake. Some endpoints
+    (proven: GetImagenArray) don't validate the token, so calling them token-less
+    avoids a /antiforgery/token GET per request — the endpoint the anti-bot
+    throttles. Returns (status, parsed_json_or_text), same as request_with_token."""
+    headers = {**HEADERS_DEFAULT, "Content-Type": "application/json"}
+    res = await session.request(
+        method=method.name,
+        url=url,
+        headers=headers,
+        data=orjson.dumps(payload) if payload is not None else None,
+    )
     text = await res.text()
     try:
         return res.status, orjson.loads(text)

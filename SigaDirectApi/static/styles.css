@@ -494,6 +494,263 @@ button:focus-visible {
   word-break: break-word;
 }
 
+/* ── Results: virtual-scroll cards ─────────────────────────────────────── */
+
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.results-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.results-count {
+  font-family: var(--mono);
+}
+
+.results-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-mini {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 10px;
+}
+
+.results-selected {
+  font-family: var(--mono);
+  color: var(--accent);
+  font-weight: 700;
+  margin-left: auto;
+}
+
+/* Bulk-export control in the results bar. */
+.results-export {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.export-format {
+  width: auto;
+  padding: 3px 8px;
+  font-size: 11.5px;
+}
+
+.export-status {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+/* Copies by-fecha group selector (SIGA-style: one group's cards shown at once). */
+.group-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.group-tab.active {
+  color: #fff;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Per-card download strip at the bottom of a card. */
+.rc-actions {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 6px;
+  padding: 6px 12px;
+  border-top: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+/* Live paging status next to the records fetch buttons. */
+.fetch-status {
+  font-size: 12.5px;
+  font-family: var(--mono);
+  color: var(--text-muted);
+}
+
+/* Compact toggle (e.g. Auto-load images) for a button row. */
+.switch-mini {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.switch-mini input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* The scroll viewport: fixed height, the only thing that scrolls. */
+.vscroll {
+  position: relative;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+/* Tall spacer that gives the scrollbar its full (all-rows) size. */
+.vsizer {
+  position: relative;
+  width: 100%;
+}
+
+/* The rendered window, translated to sit at the scrolled offset. */
+.vwindow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+}
+
+/* One fixed-height row slot; padding makes the inter-card gap without changing
+   the CARD_HEIGHT stride (box-sizing keeps the slot exactly CARD_HEIGHT). */
+.rc-slot {
+  box-sizing: border-box;
+  padding: 0 6px 6px;
+}
+
+.rc {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+}
+
+.rc-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 8px 12px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+}
+
+.rc-check {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.rc-check input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.rc-num {
+  flex: 0 0 auto;
+  font-family: var(--mono);
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+/* Selected card: accent border + tinted header. */
+.rc-slot.selected .rc {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.rc-slot.selected .rc-head {
+  background: var(--accent-soft);
+}
+
+.rc-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  gap: 12px;
+  padding: 8px 12px;
+  overflow: hidden;
+}
+
+/* Image slot on the right of the card body (like the SIGA card). */
+.rc-img {
+  flex: 0 0 auto;
+  width: 132px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.rc-img.empty {
+  font-style: italic;
+  opacity: 0.7;
+}
+
+.rc-img-el {
+  max-width: 132px;
+  max-height: 100%;
+  object-fit: contain;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: #fff;
+}
+
+.rc-img-btn {
+  font-size: 15px;
+  padding: 4px 10px;
+  line-height: 1;
+}
+
+/* Two-column label/value grid, used for both the header block and the datos. */
+.rc-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 18px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.kv {
+  font-size: 12.5px;
+  line-height: 1.45;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kv .k {
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.kv .v {
+  color: var(--text);
+}
+
 /* ── Responsive ────────────────────────────────────────────────────────── */
 
 @media (max-width: 560px) {

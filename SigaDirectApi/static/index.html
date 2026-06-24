@@ -73,7 +73,14 @@
       </div>
       <div class="row">
         <button id="c-search">Search</button>
+        <button id="c-all-server" type="button" class="btn-secondary">All (server)</button>
+        <button id="c-all-client" type="button" class="btn-secondary">All (client)</button>
+        <button id="c-stop" type="button" class="btn-secondary" hidden>Stop</button>
+        <span id="c-fetch-status" class="fetch-status"></span>
       </div>
+      <div id="c-groups" class="group-tabs" hidden></div>
+      <div id="c-results" class="results" hidden></div>
+      <div id="c-downloads" class="downloads"></div>
       </div>
     </section>
 
@@ -119,7 +126,16 @@
       </div>
       <div class="row">
         <button id="r-search">Search</button>
+        <button id="r-all-server" type="button" class="btn-secondary">All (server)</button>
+        <button id="r-all-client" type="button" class="btn-secondary">All (client)</button>
+        <button id="r-next" type="button" class="btn-secondary" hidden>Next page</button>
+        <button id="r-stop" type="button" class="btn-secondary" hidden>Stop</button>
+        <label id="r-autoimg-wrap" class="switch-mini">
+          <input type="checkbox" id="r-autoimg" /> Auto-load images
+        </label>
+        <span id="r-fetch-status" class="fetch-status"></span>
       </div>
+      <div id="r-results" class="results" hidden></div>
       </div>
     </section>
 
@@ -179,7 +195,16 @@
       </div>
       <div class="row">
         <button id="a-search">Search</button>
+        <button id="a-all-server" type="button" class="btn-secondary">All (server)</button>
+        <button id="a-all-client" type="button" class="btn-secondary">All (client)</button>
+        <button id="a-next" type="button" class="btn-secondary" hidden>Next page</button>
+        <button id="a-stop" type="button" class="btn-secondary" hidden>Stop</button>
+        <label id="a-autoimg-wrap" class="switch-mini">
+          <input type="checkbox" id="a-autoimg" /> Auto-load images
+        </label>
+        <span id="a-fetch-status" class="fetch-status"></span>
       </div>
+      <div id="a-results" class="results" hidden></div>
       </div>
     </section>
 

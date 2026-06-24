@@ -31,7 +31,7 @@ async def download_request(
     session: aiohttp.ClientSession,
     url: str,
     method: RequestMethods = RequestMethods.POST,
-    payload: dict[str, Any] | None = None,
+    payload: dict[str, Any] | list[Any] | None = None,
 ) -> aiohttp.ClientResponse:
     token = await fetch_token_pair(session)
 

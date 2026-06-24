@@ -13,7 +13,7 @@ from typing import Any
 import aiohttp
 import uvicorn
 from fastapi import FastAPI, HTTPException, Query, Request
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -24,10 +24,14 @@ from config import (
     ARCHIVE_TTL_HOURS,
     CLEANUP_INTERVAL_SECONDS,
 )
+from base_search import AntiforgeryError
 from home_download import download_archive
 import copies_search
 import records_search
 import advanced_search
+import images
+import export
+import paginator
 from constants import (
     Area,
     Columna,
@@ -66,6 +70,49 @@ def _spawn(coro: Coroutine[Any, Any, None]) -> None:
     task.add_done_callback(_tasks.discard)
 
 
+def _job_status_payload(
+    job_id: str,
+    rows: list[Any],
+    download_prefix: str,
+    empty_message: str,
+) -> dict[str, Any]:
+    """Shared poll-response builder for the home and export download jobs."""
+    statuses = [r["status"] for r in rows]
+    if "pending" in statuses:
+        return {"job_id": job_id, "status": "running"}
+
+    ready = [r for r in rows if r["status"] == "ready"]
+    failed = [r for r in rows if r["status"] == "failed"]
+
+    if ready:
+        files: list[dict[str, Any]] = [
+            {
+                "token": r["token"],
+                "type": r["type"],
+                "filename": r["source_filename"],
+                "size_bytes": r["size_bytes"],
+                "expires_at": r["expires_at"],
+                "download_url": f"{download_prefix}/{r['token']}",
+            }
+            for r in ready
+        ]
+        result: dict[str, Any] = {"job_id": job_id, "status": "done", "files": files}
+        if failed:
+            result["errors"] = [
+                {"type": r["type"], "error": r["error"]} for r in failed
+            ]
+        return result
+
+    if failed:
+        return {
+            "job_id": job_id,
+            "status": "failed",
+            "errors": [{"type": r["type"], "error": r["error"]} for r in failed],
+        }
+
+    return {"job_id": job_id, "status": "done", "message": empty_message, "files": []}
+
+
 async def _run_job(job_id: str, items: list[tuple[str, str]]) -> None:
     """Fetch each requested archive type, updating its download row as it lands.
     One aiohttp session per job keeps the antiforgery cookie jar free of the
@@ -92,6 +139,29 @@ async def _run_job(job_id: str, items: list[tuple[str, str]]) -> None:
             except Exception as exc:
                 log.exception("download failed job=%s type=%s", job_id, atype)
                 await db.mark_failed(token, str(exc))
+
+
+async def _run_export_job(
+    job_id: str, token: str, kind: str, format: str, ids: list[int]
+) -> None:
+    """Stream one export to disk, then flip its download row to ready/failed.
+    One aiohttp session per job, same as _run_job."""
+    async with aiohttp.ClientSession() as session:
+        try:
+            path = await export.export_to_disk(
+                session=session, kind=kind, format=format, ids=ids, download_dir=ARCHIVE_DIR
+            )
+            expires_at = (_utcnow() + timedelta(hours=ARCHIVE_TTL_HOURS)).isoformat()
+            await db.mark_ready(
+                token,
+                source_filename=path.name,
+                stored_path=str(path),
+                size_bytes=path.stat().st_size,
+                expires_at=expires_at,
+            )
+        except Exception as exc:
+            log.exception("export failed job=%s kind=%s format=%s", job_id, kind, format)
+            await db.mark_failed(token, str(exc))
 
 
 async def _sweep_expired() -> None:
@@ -135,6 +205,43 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="SIGA Direct API", lifespan=lifespan)
 
 
+@app.exception_handler(asyncio.TimeoutError)
+async def _upstream_timeout(request: Request, exc: asyncio.TimeoutError) -> JSONResponse:
+    """A slow/large SIGA fetch can time out; surface it as a clean 504 JSON body
+    instead of Starlette's bare-text 500 (which the JSON client can't parse)."""
+    log.warning("upstream timeout: %s %s", request.method, request.url.path)
+    return JSONResponse(
+        status_code=504, content={"detail": "upstream SIGA request timed out"}
+    )
+
+
+@app.exception_handler(AntiforgeryError)
+async def _antiforgery_blocked(request: Request, exc: AntiforgeryError) -> JSONResponse:
+    """The /antiforgery/token handshake was throttled (anti-bot 403). Surface a
+    clean 503 instead of a bare 500 so the client can back off and retry."""
+    log.warning("antiforgery handshake blocked: %s %s", request.method, request.url.path)
+    return JSONResponse(
+        status_code=503,
+        content={"detail": "SIGA antiforgery handshake throttled — retry shortly"},
+    )
+
+
+@app.exception_handler(aiohttp.ClientError)
+async def _upstream_client_error(
+    request: Request, exc: aiohttp.ClientError
+) -> JSONResponse:
+    # aiohttp.ServerTimeoutError is both a ClientError and a TimeoutError; keep it a 504.
+    if isinstance(exc, asyncio.TimeoutError):
+        log.warning("upstream timeout: %s %s", request.method, request.url.path)
+        return JSONResponse(
+            status_code=504, content={"detail": "upstream SIGA request timed out"}
+        )
+    log.warning("upstream client error: %s", exc)
+    return JSONResponse(
+        status_code=502, content={"detail": f"upstream SIGA error: {exc}"}
+    )
+
+
 @app.get(f"{API_PREFIX}/home/today")
 async def home_today(
     request: Request,
@@ -170,47 +277,9 @@ async def home_job_status(job_id: str) -> dict[str, Any]:
     rows = await db.get_job(job_id)
     if not rows:
         raise HTTPException(status_code=404, detail="unknown job_id")
-
-    statuses = [r["status"] for r in rows]
-    if "pending" in statuses:
-        return {"job_id": job_id, "status": "running"}
-
-    ready = [r for r in rows if r["status"] == "ready"]
-    failed = [r for r in rows if r["status"] == "failed"]
-
-    if ready:
-        files: list[dict[str, Any]] = [
-            {
-                "token": r["token"],
-                "type": r["type"],
-                "filename": r["source_filename"],
-                "size_bytes": r["size_bytes"],
-                "expires_at": r["expires_at"],
-                "download_url": f"{API_PREFIX}/home/download/{r['token']}",
-            }
-            for r in ready
-        ]
-        result: dict[str, Any] = {"job_id": job_id, "status": "done", "files": files}
-        if failed:
-            result["errors"] = [
-                {"type": r["type"], "error": r["error"]} for r in failed
-            ]
-        return result
-
-    if failed:
-        return {
-            "job_id": job_id,
-            "status": "failed",
-            "errors": [{"type": r["type"], "error": r["error"]} for r in failed],
-        }
-
-    # everything came back empty
-    return {
-        "job_id": job_id,
-        "status": "done",
-        "message": "No new updates for today yet",
-        "files": [],
-    }
+    return _job_status_payload(
+        job_id, rows, f"{API_PREFIX}/home/download", "No new updates for today yet"
+    )
 
 
 @app.get(f"{API_PREFIX}/home/download/{{token}}")
@@ -262,6 +331,74 @@ def _count_entries(res: Any) -> int | None:
     return 0
 
 
+def _count_images(res: Any) -> int | None:
+    """GetImagenArray returns data as {imagenBase64: [...]}. None if not that shape."""
+    if not isinstance(res, dict):
+        return None
+    data = res.get("data")
+    if not isinstance(data, dict):
+        return None
+    imgs = data.get("imagenBase64")
+    return len(imgs) if isinstance(imgs, list) else 0
+
+
+async def _paginate(
+    adapter: paginator.Adapter,
+    request_meta: dict[str, Any],
+    *,
+    all_: bool,
+    cursor: str | None,
+    fecha_desde: date | None,
+    fecha_hasta: date | None,
+) -> JSONResponse:
+    """Drive the cap-defeating paginator for a search endpoint. Paged mode is
+    entered with `?cursor=`: an EMPTY cursor returns the first page (+ a token),
+    and each returned token fetches the next page. `?all=true` instead drains every
+    window into a single envelope. Both walk the date range downward and dedup the
+    boundary day (see paginator.py). The client must keep the query stable across
+    pages — the cursor binds the search criteria, and its stop_date drives
+    fecha_hasta. A ValueError (malformed/mismatched cursor, or an upstream
+    input_validation rejection) becomes a 400."""
+    async with aiohttp.ClientSession() as session:
+        try:
+            if cursor is not None:                    # paged mode ("" => first page)
+                page = await paginator.search_page(
+                    session, adapter, cursor=cursor or None,
+                    fecha_desde=fecha_desde, fecha_hasta=fecha_hasta,
+                )
+                content: dict[str, Any] = {
+                    "data": page.records,
+                    "pagination": {
+                        "returned": len(page.records),
+                        "truncated": page.cursor is not None,
+                        "cursor": page.cursor,
+                    },
+                }
+                status = page.status
+            else:  # all_
+                content = await paginator.search_all(
+                    session, adapter,
+                    fecha_desde=fecha_desde, fecha_hasta=fecha_hasta,
+                )
+                status = 200
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
+    response = JSONResponse(status_code=status, content=content)
+    pg = content["pagination"]
+    await db.log_upstream(
+        request={**request_meta, "mode": "cursor" if cursor is not None else "all"},
+        response_meta={
+            "http_status": status,
+            "num_entries": pg.get("returned"),
+            "requests": pg.get("requests"),
+            "truncated": pg.get("truncated"),
+            "bytes": len(response.body),
+        },
+    )
+    return response
+
+
 @app.get(f"{API_PREFIX}/copies/search")
 async def copies_search_endpoint(
     area: int,
@@ -269,12 +406,24 @@ async def copies_search_endpoint(
     fecha_desde: date | None = None,
     fecha_hasta: date | None = None,
     recaptcha: str = "",
+    all_: bool = Query(default=False, alias="all"),
+    cursor: str | None = None,
 ) -> JSONResponse:
     """Ejemplares search. Routes to GetEjemplares (by gaceta) or
     GetEjemplaresArrayByFecha (by date range) inside copies_search; SIGA's status
-    and body are mirrored straight back to the caller (this is a test server)."""
+    and body are mirrored straight back to the caller (this is a test server).
+    `?all=true` / `?cursor=` page via the paginator (ejemplares never hit the 15000
+    cap, so all=true just returns the full set as a flat, deduped list)."""
     area_enum = _resolve_area(area)
     gaceta_enum = _resolve_gaceta(area_enum, gaceta) if gaceta is not None else None
+
+    if all_ or cursor is not None:
+        return await _paginate(
+            paginator.copies_adapter(area=area_enum, gaceta=gaceta_enum),
+            {"area": area, "gaceta": gaceta},
+            all_=all_, cursor=cursor,
+            fecha_desde=fecha_desde, fecha_hasta=fecha_hasta,
+        )
 
     try:
         async with aiohttp.ClientSession() as session:
@@ -314,16 +463,28 @@ async def records_search_endpoint(
     fecha_desde: date | None = None,
     fecha_hasta: date | None = None,
     recaptcha: str = "",
+    all_: bool = Query(default=False, alias="all"),
+    cursor: str | None = None,
 ) -> JSONResponse:
     """Fichas search (BusquedaFicha/GetFichas). busqueda is required; area and
     gacetas are optional but scoped together (both or neither). SIGA's status and
-    body are mirrored straight back to the caller."""
+    body are mirrored straight back to the caller. `?all=true` drains past the
+    15000-row cap by walking the date window; `?cursor=` returns one page + a
+    continuation token."""
     area_enum = _resolve_area(area) if area is not None else None
     gaceta_enums: list[Gaceta] | None = None
     if gacetas is not None:
         if area_enum is None:
             raise HTTPException(status_code=400, detail="gacetas require area")
         gaceta_enums = [_resolve_gaceta(area_enum, gid) for gid in gacetas]
+
+    if all_ or cursor is not None:
+        return await _paginate(
+            paginator.records_adapter(busqueda=busqueda, area=area_enum, gacetas=gaceta_enums),
+            {"busqueda": busqueda, "area": area, "gacetas": gacetas},
+            all_=all_, cursor=cursor,
+            fecha_desde=fecha_desde, fecha_hasta=fecha_hasta,
+        )
 
     try:
         async with aiohttp.ClientSession() as session:
@@ -502,14 +663,31 @@ async def advanced_columnas(
 
 
 @app.post(f"{API_PREFIX}/advanced/search")
-async def advanced_search_endpoint(body: AdvancedSearchRequest) -> JSONResponse:
+async def advanced_search_endpoint(
+    body: AdvancedSearchRequest,
+    all_: bool = Query(default=False, alias="all"),
+    cursor: str | None = None,
+) -> JSONResponse:
     """Estructurada search (BusquedaEstructurada/GetSearchEstructurada). POST
     because valor can be large and datos is structured. SIGA's status and body
-    are mirrored straight back to the caller."""
+    are mirrored straight back to the caller. `?all=true` drains past the 15000-row
+    cap by walking the date window; `?cursor=` returns one page + a continuation
+    token (both as query params, the body still carries the search)."""
     area_enum = _resolve_area(body.area)
     gaceta_enums = [_resolve_gaceta(area_enum, gid) for gid in body.gacetas]
     seccion_enums = [_resolve_seccion(area_enum, sid) for sid in body.secciones]
     datos = [_build_dato(dato) for dato in body.datos]
+
+    if all_ or cursor is not None:
+        return await _paginate(
+            paginator.advanced_adapter(
+                area=area_enum, gacetas=gaceta_enums,
+                secciones=seccion_enums, datos=datos,
+            ),
+            {"kind": "advanced", **body.model_dump(mode="json", exclude={"recaptcha"})},
+            all_=all_, cursor=cursor,
+            fecha_desde=body.fecha_desde, fecha_hasta=body.fecha_hasta,
+        )
 
     try:
         async with aiohttp.ClientSession() as session:
@@ -536,6 +714,138 @@ async def advanced_search_endpoint(body: AdvancedSearchRequest) -> JSONResponse:
         },
     )
     return response
+
+
+@app.get(f"{API_PREFIX}/images/{{id_ficha}}")
+async def images_endpoint(id_ficha: int) -> JSONResponse:
+    """Per-ficha images (DescargaEjemplares/GetImagenArray). SIGA's status and
+    body are mirrored straight back: data.imagenBase64 is the base64 image list
+    ([] / no images for a ficha without a logo). One ficha per call — the
+    frontend lazy-loads these one at a time (a ficha-by-ficha sweep of a large
+    search would be thousands of calls)."""
+    try:
+        async with aiohttp.ClientSession() as session:
+            status, res = await images.fetch_images(session, id_ficha)
+    except ValueError as exc:  # input_validation rejected the id
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    response = JSONResponse(status_code=status, content=res)
+    await db.log_upstream(
+        request={"id_ficha": id_ficha},
+        response_meta={
+            "http_status": status,
+            "num_images": _count_images(res),
+            "bytes": len(response.body),
+        },
+    )
+    return response
+
+
+class ExportRequest(BaseModel):
+    format: str          # copies: pdf|xml|xlsx · fichas: pdf|xlsx
+    id: list[int]        # ejemplar i_id(s) for copies, fichaId(s) for fichas
+
+
+@app.post(f"{API_PREFIX}/export/copies")
+async def export_copies_endpoint(body: ExportRequest, request: Request) -> JSONResponse:
+    """Ejemplares export. Large + slow (one ejemplar PDF is ~60-100 MB, a batch
+    can exceed several GB), so it runs as a background job: 202 + a poll URL, then
+    a download URL, exactly like /home/today."""
+    try:
+        export.resolve_copies(body.format, body.id)  # validate format/ids/xml-arity
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    fmt = body.format.lower()
+    job_id = uuid.uuid4().hex
+    token = uuid.uuid4().hex
+    await db.add_pending_downloads(job_id, [(token, f"copies_{fmt}")])
+
+    resp_body: dict[str, Any] = {
+        "job_id": job_id,
+        "status": "running",
+        "status_url": f"{API_PREFIX}/export/jobs/{job_id}",
+    }
+    await db.log_upstream(
+        request={"kind": "copies", "format": fmt, "id": body.id},
+        response_meta={"http_status": 202, **resp_body},
+    )
+    _spawn(_run_export_job(job_id, token, "copies", fmt, body.id))
+    return JSONResponse(status_code=202, content=resp_body)
+
+
+@app.post(f"{API_PREFIX}/export/fichas")
+async def export_fichas_endpoint(body: ExportRequest) -> StreamingResponse:
+    """Fichas export (FichasGaceta). Quick, so it streams the file straight back
+    rather than going through a job. The aiohttp session is held open until the
+    stream drains."""
+    try:
+        export.resolve_fichas(body.format, body.id)  # validate format/ids
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    fmt = body.format.lower()
+    session = aiohttp.ClientSession()
+    try:
+        res = await export.request_export(session, kind="fichas", format=fmt, ids=body.id)
+    except Exception:
+        await session.close()
+        raise
+    if res.status != 200:
+        data = await res.read()
+        await session.close()
+        raise HTTPException(
+            status_code=502, detail=f"upstream {res.status}: {data[:200]!r}"
+        )
+
+    filename = export.get_filename_from_headers(res, f"fichas_{fmt}")
+    media = res.headers.get("Content-Type") or export.MEDIA_TYPES.get(
+        fmt, "application/octet-stream"
+    )
+
+    async def streamer():
+        try:
+            async for chunk in res.content.iter_chunked(1 << 16):
+                yield chunk
+        finally:
+            await session.close()
+
+    await db.log_upstream(
+        request={"kind": "fichas", "format": fmt, "id": body.id},
+        response_meta={"http_status": 200, "filename": filename},
+    )
+    return StreamingResponse(
+        streamer(),
+        media_type=media,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@app.get(f"{API_PREFIX}/export/jobs/{{job_id}}")
+async def export_job_status(job_id: str) -> dict[str, Any]:
+    rows = await db.get_job(job_id)
+    if not rows:
+        raise HTTPException(status_code=404, detail="unknown job_id")
+    return _job_status_payload(
+        job_id, rows, f"{API_PREFIX}/export/download", "export produced no file"
+    )
+
+
+@app.get(f"{API_PREFIX}/export/download/{{token}}")
+async def export_download_file(token: str) -> FileResponse:
+    row = await db.get_download(token)
+    if not row or row["status"] != "ready" or row["deleted_at"]:
+        raise HTTPException(status_code=404, detail="not found")
+    if row["expires_at"] and row["expires_at"] < _utcnow().isoformat():
+        raise HTTPException(status_code=404, detail="expired")
+    path = Path(row["stored_path"])
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="file missing")
+    return FileResponse(
+        path,
+        media_type=export.media_type_for_filename(row["source_filename"]),
+        filename=row["source_filename"],
+    )
 
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
