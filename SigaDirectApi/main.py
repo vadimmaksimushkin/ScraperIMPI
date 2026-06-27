@@ -24,7 +24,7 @@ from config import (
     ARCHIVE_TTL_HOURS,
     CLEANUP_INTERVAL_SECONDS,
 )
-from base_search import AntiforgeryError
+from base_search import AntiforgeryError, TokenPair, parse_token_headers
 from home_download import download_archive
 import copies_search
 import records_search
@@ -242,6 +242,18 @@ async def _upstream_client_error(
     )
 
 
+def _client_token(request: Request) -> TokenPair | None:
+    """A client may mint its own antiforgery token (from its own IP, spreading the
+    /antiforgery/token load off the local API's single IP) and pass it via the
+    X-Siga-* headers; we then replay it upstream instead of fetching our own. None
+    when the client sent no token (we fall back to fetching one). A half-supplied
+    token is a 400."""
+    try:
+        return parse_token_headers(request.headers)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
 @app.get(f"{API_PREFIX}/home/today")
 async def home_today(
     request: Request,
@@ -401,6 +413,7 @@ async def _paginate(
 
 @app.get(f"{API_PREFIX}/copies/search")
 async def copies_search_endpoint(
+    request: Request,
     area: int,
     gaceta: int | None = None,
     fecha_desde: date | None = None,
@@ -416,10 +429,11 @@ async def copies_search_endpoint(
     cap, so all=true just returns the full set as a flat, deduped list)."""
     area_enum = _resolve_area(area)
     gaceta_enum = _resolve_gaceta(area_enum, gaceta) if gaceta is not None else None
+    token = _client_token(request)
 
     if all_ or cursor is not None:
         return await _paginate(
-            paginator.copies_adapter(area=area_enum, gaceta=gaceta_enum),
+            paginator.copies_adapter(area=area_enum, gaceta=gaceta_enum, token=token),
             {"area": area, "gaceta": gaceta},
             all_=all_, cursor=cursor,
             fecha_desde=fecha_desde, fecha_hasta=fecha_hasta,
@@ -434,6 +448,7 @@ async def copies_search_endpoint(
                 fecha_desde=fecha_desde,
                 fecha_hasta=fecha_hasta,
                 recaptcha=recaptcha,
+                token=token,
             )
     except ValueError as exc:  # input_validation rejected the params
         raise HTTPException(status_code=400, detail=str(exc))
@@ -457,6 +472,7 @@ async def copies_search_endpoint(
 
 @app.get(f"{API_PREFIX}/records/search")
 async def records_search_endpoint(
+    request: Request,
     busqueda: int,
     area: int | None = None,
     gacetas: list[int] | None = Query(default=None),
@@ -477,10 +493,13 @@ async def records_search_endpoint(
         if area_enum is None:
             raise HTTPException(status_code=400, detail="gacetas require area")
         gaceta_enums = [_resolve_gaceta(area_enum, gid) for gid in gacetas]
+    token = _client_token(request)
 
     if all_ or cursor is not None:
         return await _paginate(
-            paginator.records_adapter(busqueda=busqueda, area=area_enum, gacetas=gaceta_enums),
+            paginator.records_adapter(
+                busqueda=busqueda, area=area_enum, gacetas=gaceta_enums, token=token
+            ),
             {"busqueda": busqueda, "area": area, "gacetas": gacetas},
             all_=all_, cursor=cursor,
             fecha_desde=fecha_desde, fecha_hasta=fecha_hasta,
@@ -496,6 +515,7 @@ async def records_search_endpoint(
                 fecha_desde=fecha_desde,
                 fecha_hasta=fecha_hasta,
                 recaptcha=recaptcha,
+                token=token,
             )
     except ValueError as exc:  # input_validation rejected the params
         raise HTTPException(status_code=400, detail=str(exc))
@@ -664,6 +684,7 @@ async def advanced_columnas(
 
 @app.post(f"{API_PREFIX}/advanced/search")
 async def advanced_search_endpoint(
+    request: Request,
     body: AdvancedSearchRequest,
     all_: bool = Query(default=False, alias="all"),
     cursor: str | None = None,
@@ -677,12 +698,13 @@ async def advanced_search_endpoint(
     gaceta_enums = [_resolve_gaceta(area_enum, gid) for gid in body.gacetas]
     seccion_enums = [_resolve_seccion(area_enum, sid) for sid in body.secciones]
     datos = [_build_dato(dato) for dato in body.datos]
+    token = _client_token(request)
 
     if all_ or cursor is not None:
         return await _paginate(
             paginator.advanced_adapter(
                 area=area_enum, gacetas=gaceta_enums,
-                secciones=seccion_enums, datos=datos,
+                secciones=seccion_enums, datos=datos, token=token,
             ),
             {"kind": "advanced", **body.model_dump(mode="json", exclude={"recaptcha"})},
             all_=all_, cursor=cursor,
@@ -700,6 +722,7 @@ async def advanced_search_endpoint(
                 fecha_desde=body.fecha_desde,
                 fecha_hasta=body.fecha_hasta,
                 recaptcha=body.recaptcha,
+                token=token,
             )
     except ValueError as exc:  # input_validation rejected the params
         raise HTTPException(status_code=400, detail=str(exc))

@@ -39,6 +39,7 @@ from typing import Any, Awaitable, Callable
 import aiohttp
 import orjson
 
+from base_search import TokenPair
 from constants import (
     Area, Gaceta, Seccion, Dato, mexico_today,
 )
@@ -188,11 +189,11 @@ def _fichas_data(res: Any) -> list[dict[str, Any]]:
 
 
 def advanced_adapter(area: Area, gacetas: list[Gaceta], secciones: list[Seccion],
-                     datos: list[Dato]) -> Adapter:
+                     datos: list[Dato], token: TokenPair | None = None) -> Adapter:
     async def _search(session, desde, hasta):
         return await advanced_search.search(
             session, area=area, gacetas=gacetas, secciones=secciones, datos=datos,
-            fecha_desde=desde, fecha_hasta=hasta)
+            fecha_desde=desde, fecha_hasta=hasta, token=token)
     return Adapter(
         search=_search,
         extract=_fichas_data,
@@ -208,11 +209,12 @@ def advanced_adapter(area: Area, gacetas: list[Gaceta], secciones: list[Seccion]
 
 
 def records_adapter(busqueda: int, area: Area | None = None,
-                    gacetas: list[Gaceta] | None = None) -> Adapter:
+                    gacetas: list[Gaceta] | None = None,
+                    token: TokenPair | None = None) -> Adapter:
     async def _search(session, desde, hasta):
         return await records_search.search(
             session, busqueda=busqueda, area=area, gacetas=gacetas,
-            fecha_desde=desde, fecha_hasta=hasta)
+            fecha_desde=desde, fecha_hasta=hasta, token=token)
     return Adapter(
         search=_search,
         extract=_fichas_data,
@@ -242,10 +244,12 @@ def _copies_data(res: Any) -> list[dict[str, Any]]:
     return []
 
 
-def copies_adapter(area: Area, gaceta: Gaceta | None = None) -> Adapter:
+def copies_adapter(area: Area, gaceta: Gaceta | None = None,
+                   token: TokenPair | None = None) -> Adapter:
     async def _search(session, desde, hasta):
         return await copies_search.search(
-            session, area=area, gaceta=gaceta, fecha_desde=desde, fecha_hasta=hasta)
+            session, area=area, gaceta=gaceta, fecha_desde=desde, fecha_hasta=hasta,
+            token=token)
     return Adapter(
         search=_search,
         extract=_copies_data,

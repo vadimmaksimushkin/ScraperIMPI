@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import sys
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -25,6 +26,15 @@ UA = (
 )
 ANTIFORGERY_COOKIE_PREFIX = ".AspNetCore.Antiforgery"
 XSRF_COOKIE_NAME = "XSRF-TOKEN"
+
+# Headers a client may use to supply its OWN antiforgery token, so the local API
+# replays it upstream instead of fetching a fresh one per request. Funnelling every
+# /antiforgery/token GET through the local API's single IP trips the anti-bot
+# throttle; letting many client IPs mint their own tokens spreads that load.
+# The cookie header carries the full ".AspNetCore.Antiforgery.*=<value>" pair; the
+# xsrf header carries the matching request token. Both are required together.
+CLIENT_TOKEN_COOKIE_HEADER = "X-Siga-Antiforgery-Cookie"
+CLIENT_TOKEN_XSRF_HEADER = "X-Siga-Xsrf-Token"
 HEADERS_DEFAULT = {
     "Accept": "application/json, text/plain, */*",
     "Origin": ORIGIN,
@@ -91,13 +101,49 @@ async def fetch_token_pair(session: aiohttp.ClientSession) -> TokenPair:
     return TokenPair(antiforgery[0], antiforgery[1], request_token)
 
 
+def parse_token_headers(headers: Mapping[str, str]) -> TokenPair | None:
+    """Build a TokenPair from the client-supplied token headers, or None when the
+    client sent neither (the caller then fetches its own token). Raises ValueError
+    if only one header is present or the cookie header is malformed — a half-given
+    token is a client mistake, not a silent fall-through to a server-issued one."""
+    cookie = headers.get(CLIENT_TOKEN_COOKIE_HEADER)
+    xsrf = headers.get(CLIENT_TOKEN_XSRF_HEADER)
+
+    if not cookie and not xsrf:
+        return None
+    if not cookie or not cookie.strip() or not xsrf or not xsrf.strip():
+        raise ValueError(
+            f"both {CLIENT_TOKEN_COOKIE_HEADER} and {CLIENT_TOKEN_XSRF_HEADER}"
+            " are required together"
+        )
+
+    name, sep, value = cookie.partition("=")
+    name, value = name.strip(), value.strip()
+    if not sep or not name or not value:
+        raise ValueError(
+            f"{CLIENT_TOKEN_COOKIE_HEADER} must be '<cookie-name>=<cookie-value>'"
+        )
+    if not name.startswith(ANTIFORGERY_COOKIE_PREFIX):
+        raise ValueError(
+            f"{CLIENT_TOKEN_COOKIE_HEADER} name must start with"
+            f" {ANTIFORGERY_COOKIE_PREFIX!r}"
+        )
+    return TokenPair(name, value, xsrf.strip())
+
+
 async def request_with_token(
     session: aiohttp.ClientSession,
     method: RequestMethods,
     url: str,
     payload: dict[str, Any] | None,
+    token: TokenPair | None = None,
 ) -> tuple[int, Any]:
-    token = await fetch_token_pair(session)
+    """Call an endpoint that validates the antiforgery token. When `token` is given
+    (e.g. minted and supplied by the client) it is replayed as-is; otherwise a fresh
+    token is fetched. Replaying a supplied token avoids a /antiforgery/token GET per
+    request — the endpoint the anti-bot throttles."""
+    if token is None:
+        token = await fetch_token_pair(session)
 
     headers = {
         **HEADERS_DEFAULT,

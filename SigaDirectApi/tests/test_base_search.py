@@ -19,6 +19,8 @@ import pytest
 import base_search
 from base_search import (
     BASE,
+    CLIENT_TOKEN_COOKIE_HEADER,
+    CLIENT_TOKEN_XSRF_HEADER,
     HEADERS_DEFAULT,
     ORIGIN,
     REFERER,
@@ -26,6 +28,7 @@ from base_search import (
     XSRF_COOKIE_NAME,
     TokenPair,
     fetch_token_pair,
+    parse_token_headers,
     request_with_token,
 )
 from constants import RequestMethods
@@ -318,3 +321,80 @@ def test_request_empty_dict_payload_sends_body(monkeypatch) -> None:
     session = FakeReqSession(FakeReqResp(200, "{}"))
     run(request_with_token(session, RequestMethods.POST, URL, {}))
     assert session.captured["data"] == orjson.dumps({})
+
+
+# ===========================================================================
+# Client-supplied token: parse_token_headers (should PASS)
+# ===========================================================================
+def test_parse_token_headers_none_when_both_absent() -> None:
+    assert parse_token_headers({}) is None
+
+
+def test_parse_token_headers_happy_path() -> None:
+    tp = parse_token_headers({
+        CLIENT_TOKEN_COOKIE_HEADER: f"{AF_KEY}={AF_VAL}",
+        CLIENT_TOKEN_XSRF_HEADER: XSRF_VAL,
+    })
+    assert tp == TokenPair(AF_KEY, AF_VAL, XSRF_VAL)
+
+
+def test_parse_token_headers_strips_whitespace() -> None:
+    tp = parse_token_headers({
+        CLIENT_TOKEN_COOKIE_HEADER: f"  {AF_KEY} = {AF_VAL}  ",
+        CLIENT_TOKEN_XSRF_HEADER: f"  {XSRF_VAL}  ",
+    })
+    assert tp == TokenPair(AF_KEY, AF_VAL, XSRF_VAL)
+
+
+def test_parse_token_headers_value_may_contain_equals() -> None:
+    # antiforgery values are base64 and can end with '=' padding; partition on the
+    # FIRST '=' so the value keeps its own.
+    tp = parse_token_headers({
+        CLIENT_TOKEN_COOKIE_HEADER: f"{AF_KEY}=CfDJ8abc==",
+        CLIENT_TOKEN_XSRF_HEADER: XSRF_VAL,
+    })
+    assert tp == TokenPair(AF_KEY, "CfDJ8abc==", XSRF_VAL)
+
+
+def test_parse_token_headers_only_cookie_raises() -> None:
+    with pytest.raises(ValueError):
+        parse_token_headers({CLIENT_TOKEN_COOKIE_HEADER: f"{AF_KEY}={AF_VAL}"})
+
+
+def test_parse_token_headers_only_xsrf_raises() -> None:
+    with pytest.raises(ValueError):
+        parse_token_headers({CLIENT_TOKEN_XSRF_HEADER: XSRF_VAL})
+
+
+def test_parse_token_headers_cookie_without_equals_raises() -> None:
+    with pytest.raises(ValueError):
+        parse_token_headers({
+            CLIENT_TOKEN_COOKIE_HEADER: AF_KEY,  # no '=value'
+            CLIENT_TOKEN_XSRF_HEADER: XSRF_VAL,
+        })
+
+
+def test_parse_token_headers_wrong_cookie_prefix_raises() -> None:
+    with pytest.raises(ValueError):
+        parse_token_headers({
+            CLIENT_TOKEN_COOKIE_HEADER: f"SESSION={AF_VAL}",
+            CLIENT_TOKEN_XSRF_HEADER: XSRF_VAL,
+        })
+
+
+# ===========================================================================
+# Client-supplied token: request_with_token replays it, no handshake
+# ===========================================================================
+def test_request_with_supplied_token_skips_handshake(monkeypatch) -> None:
+    # fetch_token_pair must NOT be called when a token is supplied.
+    async def boom(session):
+        raise AssertionError("fetch_token_pair should not be called")
+
+    monkeypatch.setattr(base_search, "fetch_token_pair", boom)
+    supplied = TokenPair(AF_KEY, AF_VAL, "supplied-req-tok")
+    session = FakeReqSession(FakeReqResp(200, "{}"))
+    run(request_with_token(session, RequestMethods.POST, URL, {"a": 1}, token=supplied))
+
+    cap = session.captured
+    assert cap["headers"]["x-xsrf-token"] == "supplied-req-tok"
+    assert cap["cookies"] == supplied.cookies

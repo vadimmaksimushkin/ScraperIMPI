@@ -50,9 +50,9 @@ def _patch_rwt(monkeypatch, status: int = 200, res=None) -> dict:
     kwargs it was called with."""
     captured: dict = {}
 
-    async def fake_rwt(session, method, url, payload):
+    async def fake_rwt(session, method, url, payload, token=None):
         captured.update(
-            session=session, method=method, url=url, payload=payload
+            session=session, method=method, url=url, payload=payload, token=token
         )
         return status, ({"data": []} if res is None else res)
 

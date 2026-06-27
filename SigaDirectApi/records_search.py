@@ -7,6 +7,7 @@ from datetime import date, datetime
 from base_search import (
     BASE,
     RequestMethods,
+    TokenPair,
     request_with_token,
 )
 from constants import Area, Gaceta, RECAPTCHA_TOKEN_RE, mexico_today
@@ -123,6 +124,7 @@ async def search(
     fecha_desde: date | None = None,
     fecha_hasta: date | None = None,
     recaptcha: str = "",
+    token: TokenPair | None = None,
 ) -> tuple[int, Any]:
     payload = build_payload(
         busqueda=busqueda,
@@ -137,6 +139,7 @@ async def search(
         method=RequestMethods.POST,
         url=URL,
         payload=payload,
+        token=token,
     )
     return status, res
 

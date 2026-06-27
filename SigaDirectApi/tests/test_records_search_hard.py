@@ -52,8 +52,10 @@ def _patch_rwt(monkeypatch, status: int = 200, res=None) -> dict:
     """Stub records_search.request_with_token; return a dict capturing kwargs."""
     captured: dict = {}
 
-    async def fake_rwt(session, method, url, payload):
-        captured.update(session=session, method=method, url=url, payload=payload)
+    async def fake_rwt(session, method, url, payload, token=None):
+        captured.update(
+            session=session, method=method, url=url, payload=payload, token=token
+        )
         return status, ({"data": []} if res is None else res)
 
     monkeypatch.setattr(records_search, "request_with_token", fake_rwt)
