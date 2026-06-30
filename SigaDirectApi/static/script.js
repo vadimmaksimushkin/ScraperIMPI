@@ -713,14 +713,10 @@ async function pollOnce(statusUrl) {
   // status === "running" → keep polling
 }
 
-// Copies never hit the 15000 cap, so there's no cursor / Next page — but the
+// Copies never hit the 15000 cap, so there's no cursor / Next page / All — but the
 // by-fecha shape is a dict-of-lists (grouped by gaceta). A plain search keeps the
-// groups (rendered as a SIGA-style selector, one group's cards shown at a time);
-// All (server/client) flatten everything into one list.
-let copiesQuery = null;
+// groups (rendered as a SIGA-style selector, one group's cards shown at a time).
 let copiesLoading = false;
-let copiesLoopActive = false;
-let copiesStop = false;
 
 const setCopiesFetchStatus = (text) => { $('c-fetch-status').textContent = text || ''; };
 
@@ -740,12 +736,6 @@ function copiesBuildParams() {
 }
 
 function updateCopiesControls() {
-  const human = isHuman();
-  for (const id of ['c-all-server', 'c-all-client']) {
-    $(id).hidden = !human;
-    $(id).disabled = copiesLoading;
-  }
-  $('c-stop').hidden = !copiesLoopActive;
   $('c-search').disabled = copiesLoading;
 }
 
@@ -809,7 +799,7 @@ async function copiesSearch() {
     updateCopiesVisibility();
     return;
   }
-  copiesQuery = params.toString();
+  const copiesQuery = params.toString();
   copiesLoading = true;
   updateCopiesControls();
   const url = `${API}/copies/search?${copiesQuery}`;
@@ -818,67 +808,6 @@ async function copiesSearch() {
   else { logSearch(`GET ${url}`, status, data, ok); copiesRender(ok ? data?.data : null); }
   copiesLoading = false;
   updateCopiesControls();
-}
-
-async function copiesAllServer() {
-  if (copiesLoading) return;
-  $('json-output').innerHTML = '';
-  $('c-downloads').replaceChildren();
-  const params = copiesBuildParams();
-  if (!params) {
-    appendJson('copies/search — not sent', null, {error: 'area is required'});
-    return;
-  }
-  copiesQuery = params.toString();
-  copiesLoading = true;
-  updateCopiesControls();
-  setCopiesFetchStatus('draining all (server)…');
-  const url = `${API}/copies/search?${copiesQuery}&all=true`;
-  const {ok, status, data} = await fetchJson(url);
-  logSearch(`GET ${url}`, status, data, ok);
-  copiesRender(ok ? data?.data : null);   // all=true → one flat list, no groups
-  setCopiesFetchStatus(ok ? `loaded ${copiesView.length.toLocaleString()}` : 'request failed');
-  copiesLoading = false;
-  updateCopiesControls();
-}
-
-async function copiesAllClient() {
-  if (copiesLoading) return;
-  $('json-output').innerHTML = '';
-  $('c-downloads').replaceChildren();
-  const params = copiesBuildParams();
-  if (!params) {
-    appendJson('copies/search — not sent', null, {error: 'area is required'});
-    return;
-  }
-  copiesQuery = params.toString();
-  copiesLoading = copiesLoopActive = true;
-  copiesStop = false;
-  updateCopiesControls();
-  $('c-groups').hidden = true;
-  $('c-groups').replaceChildren();
-
-  let url = `${API}/copies/search?${copiesQuery}&cursor=`;
-  let first = true, pages = 0, ended = 'done';
-  while (true) {
-    const {ok, status, data} = await fetchJson(url);
-    if (!ok) { logSearch(`GET ${url}`, status, data, ok); ended = 'error'; break; }
-    const rows = Array.isArray(data?.data) ? data.data : [];
-    if (first) { copiesView.setRecords(rows); first = false; }
-    else copiesView.appendRecords(rows);
-    pages++;
-    setCopiesFetchStatus(
-        `fetched ${copiesView.length.toLocaleString()} in ${pages} page${pages === 1 ? '' : 's'}…`);
-    updateCopiesVisibility();
-    const cursor = data?.pagination?.cursor ?? null;
-    if (!cursor) { ended = 'done'; break; }
-    if (copiesStop) { ended = 'stopped'; break; }
-    url = `${API}/copies/search?${copiesQuery}&cursor=${encodeURIComponent(cursor)}`;
-  }
-  copiesLoading = copiesLoopActive = false;
-  setCopiesFetchStatus(`${ended} — ${copiesView.length.toLocaleString()} loaded`);
-  updateCopiesControls();
-  updateCopiesVisibility();
 }
 
 // Records paging state. The cursor binds the search params, so the query that
@@ -1416,9 +1345,6 @@ updateCopiesControls();
 
 $('start').addEventListener('click', start);
 $('c-search').addEventListener('click', copiesSearch);
-$('c-all-server').addEventListener('click', copiesAllServer);
-$('c-all-client').addEventListener('click', copiesAllClient);
-$('c-stop').addEventListener('click', () => { copiesStop = true; });
 $('r-search').addEventListener('click', recordsSearch);
 $('r-all-server').addEventListener('click', recordsAllServer);
 $('r-all-client').addEventListener('click', recordsAllClient);

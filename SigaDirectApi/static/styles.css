@@ -422,7 +422,7 @@ button:focus-visible {
   background: var(--surface);
 }
 
-/* ── Advanced helpers ──────────────────────────────────────────────────── */
+/* ── Helpers ───────────────────────────────────────────────────────────── */
 
 .helper {
   display: flex;

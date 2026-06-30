@@ -19,8 +19,8 @@
 
   <main>
     <section class="card">
-      <h2>Home download <button type="button" class="section-toggle">Hide</button></h2>
-      <div class="section-body">
+      <h2>Home download <button type="button" class="section-toggle">Show</button></h2>
+      <div class="section-body" hidden>
       <p class="hint">
         Send download request(s), poll the job, then download.
         Comma-separate types, e.g. <code>xlsx,pdf</code>.
@@ -36,8 +36,8 @@
     </section>
 
     <section class="card">
-      <h2>Copies search (Ejemplares) <button type="button" class="section-toggle">Hide</button></h2>
-      <div class="section-body">
+      <h2>Copies search (Ejemplares) <button type="button" class="section-toggle">Show</button></h2>
+      <div class="section-body" hidden>
       <p class="hint">
         <code>area</code> is required; pass a <code>gaceta</code> id,
         or a <code>fecha_desde</code>/<code>fecha_hasta</code> range. Dates are
@@ -73,9 +73,6 @@
       </div>
       <div class="row">
         <button id="c-search">Search</button>
-        <button id="c-all-server" type="button" class="btn-secondary">All (server)</button>
-        <button id="c-all-client" type="button" class="btn-secondary">All (client)</button>
-        <button id="c-stop" type="button" class="btn-secondary" hidden>Stop</button>
         <span id="c-fetch-status" class="fetch-status"></span>
       </div>
       <div id="c-groups" class="group-tabs" hidden></div>
@@ -85,8 +82,8 @@
     </section>
 
     <section class="card">
-      <h2>Records search (Búsqueda en fichas) <button type="button" class="section-toggle">Hide</button></h2>
-      <div class="section-body">
+      <h2>Records search (Búsqueda en fichas) <button type="button" class="section-toggle">Show</button></h2>
+      <div class="section-body" hidden>
       <p class="hint">
         <code>busqueda</code> is required (a numeric record id, ≥ 2 digits).
         <code>gacetas</code> is comma-separated and only valid together with <code>area</code>.
@@ -140,8 +137,8 @@
     </section>
 
     <section class="card">
-      <h2>Advanced search (Búsqueda especializada) <button type="button" class="section-toggle">Hide</button></h2>
-      <div class="section-body">
+      <h2>Advanced search (Búsqueda especializada) <button type="button" class="section-toggle">Show</button></h2>
+      <div class="section-body" hidden>
       <p class="hint">
         (POST) <code>area</code> is required. Possible to add 0-N
         <code>datos</code>, api accepts only 1 or 2: <code>operador</code> should be blank on the first,
@@ -209,8 +206,8 @@
     </section>
 
     <section class="card">
-      <h2>Advanced helpers <button type="button" class="section-toggle">Hide</button></h2>
-      <div class="section-body">
+      <h2>Helpers <button type="button" class="section-toggle">Show</button></h2>
+      <div class="section-body" hidden>
       <p class="hint">Look up the numeric ids search</p>
 
       <div class="helper">
