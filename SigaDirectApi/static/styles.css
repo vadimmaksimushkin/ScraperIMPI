@@ -577,11 +577,16 @@ button:focus-visible {
   background: var(--surface-2);
 }
 
-/* Live paging status next to the records fetch buttons. */
+/* Live paging status next to the records fetch buttons. Doubles as the inline
+   error surface in human mode, where the response log is hidden. */
 .fetch-status {
   font-size: 12.5px;
   font-family: var(--mono);
   color: var(--text-muted);
+}
+
+.fetch-status.error {
+  color: var(--error);
 }
 
 /* Compact toggle (e.g. Auto-load images) for a button row. */

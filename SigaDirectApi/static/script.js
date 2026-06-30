@@ -301,14 +301,18 @@ function fmtBytes(n) {
 }
 
 // ── Results view: a uniform-height virtual-scroll list ───────────────────────
-// `mount` is an empty container; `renderCard(record, index, ctx)` returns the
-// card element (ctx carries the per-row selection state). `getId(record)` yields
-// the stable id used for selection/export. Only the rows near the viewport are
+// `mount` is an empty container. The per-type bits — how a row renders, its
+// stable id, and how a selection exports — are swapped in via `use(profile)`, so
+// one view serves copies/records/advanced. Only the rows near the viewport are
 // in the DOM; a tall (capped) sizer fakes the full scrollbar. Selection lives in
 // a Set of ids, decoupled from the DOM, so it survives recycling in both scroll
 // directions and scales to selecting 100k+ rows.
-function createResultsView(mount, renderCard, getId, opts = {}) {
-  const {onExport, exportFormats = ['xlsx', 'pdf'], maxExport = MAX_EXPORT} = opts;
+function createResultsView(mount) {
+  // Per-profile config, swapped by use(). Safe defaults until the first use().
+  let renderCard = () => document.createElement('div');
+  let getId = (r) => r;
+  let onExport = null;
+  let maxExport = MAX_EXPORT;
   mount.classList.add('results');
   mount.replaceChildren();
 
@@ -329,49 +333,51 @@ function createResultsView(mount, renderCard, getId, opts = {}) {
   const btnVisible = mkBtn('Select visible');
   const btnClear = mkBtn('Clear');
   actions.append(btnAll, btnVisible, btnClear);
+
+  // Auto-load images: one toggle owned by the view, shown only for profiles whose
+  // cards carry images (fichas — ejemplares have none).
+  const autoWrap = document.createElement('label');
+  autoWrap.className = 'switch-mini results-autoload';
+  const autoCb = document.createElement('input');
+  autoCb.type = 'checkbox';
+  autoWrap.append(autoCb, document.createTextNode(' Auto-load images'));
+
   const selCount = document.createElement('span');
   selCount.className = 'results-selected';
-  bar.append(count, actions, selCount);
 
-  // Bulk export of the current selection (only if this view supports it).
-  let exportStatus = null;
-  if (onExport) {
-    const exportWrap = document.createElement('span');
-    exportWrap.className = 'results-export';
-    const fmt = document.createElement('select');
-    fmt.className = 'export-format';
-    for (const f of exportFormats) {
-      const o = document.createElement('option');
-      o.value = f;
-      o.textContent = f.toUpperCase();
-      fmt.appendChild(o);
+  // Bulk export of the current selection. Built once; use() refills the formats
+  // and rebinds onExport/maxExport per profile.
+  const exportWrap = document.createElement('span');
+  exportWrap.className = 'results-export';
+  const fmt = document.createElement('select');
+  fmt.className = 'export-format';
+  const btnExport = mkBtn('Export selected');
+  const exportStatus = document.createElement('span');
+  exportStatus.className = 'export-status';
+  exportWrap.append(fmt, btnExport, exportStatus);
+
+  bar.append(count, actions, autoWrap, selCount, exportWrap);
+
+  btnExport.addEventListener('click', async () => {
+    if (!onExport) return;
+    const ids = [...selected];
+    if (!ids.length) { exportStatus.textContent = 'select rows first'; return; }
+    if (ids.length > maxExport) {
+      exportStatus.textContent =
+          `max ${maxExport.toLocaleString()} per export (selected ${ids.length.toLocaleString()})`;
+      return;
     }
-    const btnExport = mkBtn('Export selected');
-    exportStatus = document.createElement('span');
-    exportStatus.className = 'export-status';
-    exportWrap.append(fmt, btnExport, exportStatus);
-    bar.append(exportWrap);
-
-    btnExport.addEventListener('click', async () => {
-      const ids = [...selected];
-      if (!ids.length) { exportStatus.textContent = 'select rows first'; return; }
-      if (ids.length > maxExport) {
-        exportStatus.textContent =
-            `max ${maxExport.toLocaleString()} per export (selected ${ids.length.toLocaleString()})`;
-        return;
-      }
-      btnExport.disabled = true;
-      exportStatus.textContent = `exporting ${ids.length.toLocaleString()}…`;
-      try {
-        await onExport(ids, fmt.value);
-        exportStatus.textContent = `exported ${ids.length.toLocaleString()} (${fmt.value.toUpperCase()})`;
-      } catch (e) {
-        exportStatus.textContent = 'export failed: ' + e.message;
-      } finally {
-        btnExport.disabled = false;  // selection is kept, mirroring SIGA
-      }
-    });
-  }
+    btnExport.disabled = true;
+    exportStatus.textContent = `exporting ${ids.length.toLocaleString()}…`;
+    try {
+      await onExport(ids, fmt.value);
+      exportStatus.textContent = `exported ${ids.length.toLocaleString()} (${fmt.value.toUpperCase()})`;
+    } catch (e) {
+      exportStatus.textContent = 'export failed: ' + e.message;
+    } finally {
+      btnExport.disabled = false;  // selection is kept, mirroring SIGA
+    }
+  });
 
   const scroll = document.createElement('div');
   scroll.className = 'vscroll';
@@ -386,9 +392,11 @@ function createResultsView(mount, renderCard, getId, opts = {}) {
 
   let records = [];
   let rafPending = false;
-  let autoLoad = false;               // this view's auto-load-images state
+  let autoLoad = false;               // auto-load-images state (the bar toggle)
   let visible = {start: 0, end: 0};   // truly-visible viewport range, for "Select visible"
   const selected = new Set();
+
+  autoCb.addEventListener('change', () => { autoLoad = autoCb.checked; paint(); });
 
   function updateSelCount() {
     const n = selected.size;
@@ -489,7 +497,33 @@ function createResultsView(mount, renderCard, getId, opts = {}) {
 
   updateSelCount();
 
+  // Swap the per-type config and reset to an empty table. Called once at the
+  // start of each search; paging then appends into the same profile.
+  function use(profile) {
+    renderCard = profile.renderCard;
+    getId = profile.getId;
+    onExport = profile.onExport || null;
+    maxExport = profile.maxExport ?? MAX_EXPORT;
+    fmt.replaceChildren();
+    for (const f of profile.exportFormats || ['xlsx', 'pdf']) {
+      const o = document.createElement('option');
+      o.value = f;
+      o.textContent = f.toUpperCase();
+      fmt.appendChild(o);
+    }
+    exportWrap.hidden = !onExport;
+    autoWrap.hidden = !profile.images;
+    if (!profile.images) { autoLoad = false; autoCb.checked = false; }
+    exportStatus.textContent = '';
+    records = [];
+    selected.clear();
+    updateSelCount();
+    if (profile.onActivate) profile.onActivate();
+    sync(true);
+  }
+
   return {
+    use,
     // Copy on set so the view owns its array (append mutates it in place, which
     // keeps draining 200k+ rows from re-allocating the whole list each page).
     // A fresh result set drops the old selection (those ids are gone).
@@ -501,8 +535,6 @@ function createResultsView(mount, renderCard, getId, opts = {}) {
     },
     clear() { records = []; selected.clear(); updateSelCount(); sync(true); },
     refresh() { paint(); },   // re-render the window
-    setAutoLoad(on) { autoLoad = on; paint(); },
-    get mount() { return mount; },
     get length() { return records.length; },
     get selectedCount() { return selected.size; },
     selectedIds() { return [...selected]; },
@@ -718,7 +750,11 @@ async function pollOnce(statusUrl) {
 // groups (rendered as a SIGA-style selector, one group's cards shown at a time).
 let copiesLoading = false;
 
-const setCopiesFetchStatus = (text) => { $('c-fetch-status').textContent = text || ''; };
+const setCopiesFetchStatus = (text, isError) => {
+  const el = $('c-fetch-status');
+  el.textContent = text || '';
+  el.classList.toggle('error', !!isError);
+};
 
 function copiesBuildParams() {
   const area = singleVal('c-area', 'c-area-sel');
@@ -739,11 +775,6 @@ function updateCopiesControls() {
   $('c-search').disabled = copiesLoading;
 }
 
-function updateCopiesVisibility() {
-  $('c-results').hidden = !isHuman() || copiesView.length === 0;
-  if (!isHuman()) $('c-groups').hidden = true;
-}
-
 // data is a flat list (by gaceta / all) or a dict-of-lists (by fecha). Lists go
 // straight to the table; a dict gets a group selector that swaps the table.
 function copiesRender(data) {
@@ -751,22 +782,21 @@ function copiesRender(data) {
   if (Array.isArray(data)) {
     box.hidden = true;
     box.replaceChildren();
-    copiesView.setRecords(data);
+    resultsView.setRecords(data);
   } else if (data && typeof data === 'object') {
     renderCopyGroups(data);
   } else {
     box.hidden = true;
     box.replaceChildren();
-    copiesView.clear();
+    resultsView.clear();
   }
-  updateCopiesVisibility();
 }
 
 function renderCopyGroups(groups) {
   const box = $('c-groups');
   box.replaceChildren();
   const keys = Object.keys(groups);
-  if (!keys.length) { box.hidden = true; copiesView.clear(); return; }
+  if (!keys.length) { box.hidden = true; resultsView.clear(); return; }
   box.hidden = false;
   for (const key of keys) {
     const list = Array.isArray(groups[key]) ? groups[key] : [];
@@ -777,8 +807,7 @@ function renderCopyGroups(groups) {
     btn.addEventListener('click', () => {
       box.querySelectorAll('.group-tab').forEach((b) => b.classList.remove('active'));
       btn.classList.add('active');
-      copiesView.setRecords(list);
-      updateCopiesVisibility();
+      resultsView.setRecords(list);
     });
     box.appendChild(btn);
   }
@@ -790,13 +819,10 @@ async function copiesSearch() {
   $('c-downloads').replaceChildren();
   const params = copiesBuildParams();
   if (!params) {
-    copiesView.clear();
-    $('c-groups').hidden = true;
-    $('c-groups').replaceChildren();
-    setCopiesFetchStatus('');
+    resultsView.use(COPIES_PROFILE);
+    setCopiesFetchStatus('area is required', true);
     appendJson('copies/search — not sent', null, {error: 'area is required'});
     updateCopiesControls();
-    updateCopiesVisibility();
     return;
   }
   const copiesQuery = params.toString();
@@ -805,7 +831,13 @@ async function copiesSearch() {
   const url = `${API}/copies/search?${copiesQuery}`;
   const {ok, status, data} = await fetchJson(url);
   if (!isHuman()) appendJson(`GET ${url}`, status, data);
-  else { logSearch(`GET ${url}`, status, data, ok); copiesRender(ok ? data?.data : null); }
+  else {
+    logSearch(`GET ${url}`, status, data, ok);
+    resultsView.use(COPIES_PROFILE);
+    copiesRender(ok ? data?.data : null);
+    setCopiesFetchStatus(
+        ok ? `loaded ${resultsView.length.toLocaleString()}` : 'request failed', !ok);
+  }
   copiesLoading = false;
   updateCopiesControls();
 }
@@ -835,7 +867,11 @@ function recordsBaseParams() {
   return params;
 }
 
-const setRecordsFetchStatus = (text) => { $('r-fetch-status').textContent = text || ''; };
+const setRecordsFetchStatus = (text, isError) => {
+  const el = $('r-fetch-status');
+  el.textContent = text || '';
+  el.classList.toggle('error', !!isError);
+};
 
 // Buttons stay put; they just disable while a fetch is in flight. Next page only
 // shows when a cursor came back; Stop only during the All (client) loop. All of
@@ -849,13 +885,7 @@ function updateRecordsControls() {
   $('r-next').hidden = !human || !recordsCursor;
   $('r-next').disabled = recordsLoading;
   $('r-stop').hidden = !recordsLoopActive;
-  $('r-autoimg-wrap').hidden = !human;
   $('r-search').disabled = recordsLoading;
-}
-
-// The card table is the human-mode result surface; in raw mode the JSON log is.
-function updateRecordsVisibility() {
-  $('r-results').hidden = !isHuman() || recordsView.length === 0;
 }
 
 // Fetch one page (a window or the all-envelope) into the table, set/append rows,
@@ -866,15 +896,14 @@ async function recordsLoadPage(url, append) {
   const {ok, status, data} = await fetchJson(url);
   logSearch(`GET ${url}`, status, data, ok);
   const rows = ok && Array.isArray(data?.data) ? data.data : [];
-  if (append) recordsView.appendRecords(rows);
-  else recordsView.setRecords(rows);
+  if (append) resultsView.appendRecords(rows);
+  else resultsView.setRecords(rows);
   recordsCursor = ok ? (data?.pagination?.cursor ?? null) : null;
-  setRecordsFetchStatus(recordsView.length
-      ? `loaded ${recordsView.length.toLocaleString()}${recordsCursor ? ' — more available' : ''}`
-      : (ok ? 'no results' : 'request failed'));
+  setRecordsFetchStatus(resultsView.length
+      ? `loaded ${resultsView.length.toLocaleString()}${recordsCursor ? ' — more available' : ''}`
+      : (ok ? 'no results' : 'request failed'), !ok);
   recordsLoading = false;
   updateRecordsControls();
-  updateRecordsVisibility();
 }
 
 async function recordsSearch() {
@@ -882,11 +911,10 @@ async function recordsSearch() {
   const base = recordsBaseParams();
   if (!base) {
     recordsQuery = recordsCursor = null;
-    recordsView.clear();
-    setRecordsFetchStatus('');
+    resultsView.use(FICHA_PROFILE);
+    setRecordsFetchStatus('busqueda is required', true);
     appendJson('records/search — not sent', null, {error: 'busqueda is required'});
     updateRecordsControls();
-    updateRecordsVisibility();
     return;
   }
   recordsQuery = base.toString();
@@ -903,7 +931,7 @@ async function recordsSearch() {
     return;
   }
   // Human mode: paged first page (cursor= empty) so a cursor can come back.
-  recordsView.clear();
+  resultsView.use(FICHA_PROFILE);
   await recordsLoadPage(`${API}/records/search?${recordsQuery}&cursor=`, false);
 }
 
@@ -919,12 +947,13 @@ async function recordsAllServer() {
   $('json-output').innerHTML = '';
   const base = recordsBaseParams();
   if (!base) {
+    setRecordsFetchStatus('busqueda is required', true);
     appendJson('records/search — not sent', null, {error: 'busqueda is required'});
     return;
   }
   recordsQuery = base.toString();
   recordsCursor = null;
-  recordsView.clear();
+  resultsView.use(FICHA_PROFILE);
   setRecordsFetchStatus('draining all (server)… this can take a while');
   await recordsLoadPage(`${API}/records/search?${recordsQuery}&all=true`, false);
 }
@@ -936,12 +965,13 @@ async function recordsAllClient() {
   $('json-output').innerHTML = '';
   const base = recordsBaseParams();
   if (!base) {
+    setRecordsFetchStatus('busqueda is required', true);
     appendJson('records/search — not sent', null, {error: 'busqueda is required'});
     return;
   }
   recordsQuery = base.toString();
   recordsCursor = null;
-  recordsView.clear();
+  resultsView.use(FICHA_PROFILE);
   recordsLoading = recordsLoopActive = true;
   recordsStop = false;
   updateRecordsControls();
@@ -956,26 +986,24 @@ async function recordsAllClient() {
       break;
     }
     const rows = Array.isArray(data?.data) ? data.data : [];
-    if (first) { recordsView.setRecords(rows); first = false; }
-    else recordsView.appendRecords(rows);
+    if (first) { resultsView.setRecords(rows); first = false; }
+    else resultsView.appendRecords(rows);
     pages++;
     setRecordsFetchStatus(
-        `fetched ${recordsView.length.toLocaleString()} in ${pages} page${pages === 1 ? '' : 's'}…`);
-    updateRecordsVisibility();
+        `fetched ${resultsView.length.toLocaleString()} in ${pages} page${pages === 1 ? '' : 's'}…`);
     recordsCursor = data?.pagination?.cursor ?? null;
     if (!recordsCursor) { ended = 'done'; break; }
     if (recordsStop) { ended = 'stopped'; break; }
     url = `${API}/records/search?${recordsQuery}&cursor=${encodeURIComponent(recordsCursor)}`;
   }
   recordsLoading = recordsLoopActive = false;
-  const total = recordsView.length;
+  const total = resultsView.length;
   setRecordsFetchStatus(
       `${ended} — ${total.toLocaleString()} loaded in ${pages} page${pages === 1 ? '' : 's'}` +
       (recordsCursor ? ' (more available)' : ''));
   appendJson('records/search (all · client)', null,
       {pages, loaded: total, ended, more: recordsCursor != null});
   updateRecordsControls();
-  updateRecordsVisibility();
 }
 
 function addDatoRow() {
@@ -1017,7 +1045,11 @@ let advancedLoading = false;
 let advancedLoopActive = false;
 let advancedStop = false;
 
-const setAdvancedFetchStatus = (text) => { $('a-fetch-status').textContent = text || ''; };
+const setAdvancedFetchStatus = (text, isError) => {
+  const el = $('a-fetch-status');
+  el.textContent = text || '';
+  el.classList.toggle('error', !!isError);
+};
 
 function advancedBuildBody() {
   const areaStr = singleVal('a-area', 'a-area-sel');
@@ -1050,12 +1082,7 @@ function updateAdvancedControls() {
   $('a-next').hidden = !human || !advancedCursor;
   $('a-next').disabled = advancedLoading;
   $('a-stop').hidden = !advancedLoopActive;
-  $('a-autoimg-wrap').hidden = !human;
   $('a-search').disabled = advancedLoading;
-}
-
-function updateAdvancedVisibility() {
-  $('a-results').hidden = !isHuman() || advancedView.length === 0;
 }
 
 async function advancedLoadPage(query, append) {
@@ -1064,15 +1091,14 @@ async function advancedLoadPage(query, append) {
   const {ok, status, data} = await advancedPost(query);
   logSearch(`POST /advanced/search${query}`, status, data, ok);
   const rows = ok && Array.isArray(data?.data) ? data.data : [];
-  if (append) advancedView.appendRecords(rows);
-  else advancedView.setRecords(rows);
+  if (append) resultsView.appendRecords(rows);
+  else resultsView.setRecords(rows);
   advancedCursor = ok ? (data?.pagination?.cursor ?? null) : null;
-  setAdvancedFetchStatus(advancedView.length
-      ? `loaded ${advancedView.length.toLocaleString()}${advancedCursor ? ' — more available' : ''}`
-      : (ok ? 'no results' : 'request failed'));
+  setAdvancedFetchStatus(resultsView.length
+      ? `loaded ${resultsView.length.toLocaleString()}${advancedCursor ? ' — more available' : ''}`
+      : (ok ? 'no results' : 'request failed'), !ok);
   advancedLoading = false;
   updateAdvancedControls();
-  updateAdvancedVisibility();
 }
 
 async function advancedSearch() {
@@ -1080,11 +1106,10 @@ async function advancedSearch() {
   const body = advancedBuildBody();
   if (!body) {
     advancedBody = advancedCursor = null;
-    advancedView.clear();
-    setAdvancedFetchStatus('');
+    resultsView.use(FICHA_PROFILE);
+    setAdvancedFetchStatus('area is required', true);
     appendJson('advanced/search — not sent', null, {error: 'area is required'});
     updateAdvancedControls();
-    updateAdvancedVisibility();
     return;
   }
   advancedBody = body;
@@ -1098,7 +1123,7 @@ async function advancedSearch() {
     updateAdvancedControls();
     return;
   }
-  advancedView.clear();
+  resultsView.use(FICHA_PROFILE);
   await advancedLoadPage('?cursor=', false);
 }
 
@@ -1112,12 +1137,13 @@ async function advancedAllServer() {
   $('json-output').innerHTML = '';
   const body = advancedBuildBody();
   if (!body) {
+    setAdvancedFetchStatus('area is required', true);
     appendJson('advanced/search — not sent', null, {error: 'area is required'});
     return;
   }
   advancedBody = body;
   advancedCursor = null;
-  advancedView.clear();
+  resultsView.use(FICHA_PROFILE);
   setAdvancedFetchStatus('draining all (server)… this can take a while');
   await advancedLoadPage('?all=true', false);
 }
@@ -1127,12 +1153,13 @@ async function advancedAllClient() {
   $('json-output').innerHTML = '';
   const body = advancedBuildBody();
   if (!body) {
+    setAdvancedFetchStatus('area is required', true);
     appendJson('advanced/search — not sent', null, {error: 'area is required'});
     return;
   }
   advancedBody = body;
   advancedCursor = null;
-  advancedView.clear();
+  resultsView.use(FICHA_PROFILE);
   advancedLoading = advancedLoopActive = true;
   advancedStop = false;
   updateAdvancedControls();
@@ -1147,26 +1174,24 @@ async function advancedAllClient() {
       break;
     }
     const rows = Array.isArray(data?.data) ? data.data : [];
-    if (first) { advancedView.setRecords(rows); first = false; }
-    else advancedView.appendRecords(rows);
+    if (first) { resultsView.setRecords(rows); first = false; }
+    else resultsView.appendRecords(rows);
     pages++;
     setAdvancedFetchStatus(
-        `fetched ${advancedView.length.toLocaleString()} in ${pages} page${pages === 1 ? '' : 's'}…`);
-    updateAdvancedVisibility();
+        `fetched ${resultsView.length.toLocaleString()} in ${pages} page${pages === 1 ? '' : 's'}…`);
     advancedCursor = data?.pagination?.cursor ?? null;
     if (!advancedCursor) { ended = 'done'; break; }
     if (advancedStop) { ended = 'stopped'; break; }
     query = '?cursor=' + encodeURIComponent(advancedCursor);
   }
   advancedLoading = advancedLoopActive = false;
-  const total = advancedView.length;
+  const total = resultsView.length;
   setAdvancedFetchStatus(
       `${ended} — ${total.toLocaleString()} loaded in ${pages} page${pages === 1 ? '' : 's'}` +
       (advancedCursor ? ' (more available)' : ''));
   appendJson('advanced/search (all · client)', null,
       {pages, loaded: total, ended, more: advancedCursor != null});
   updateAdvancedControls();
-  updateAdvancedVisibility();
 }
 
 async function runHelper(url, outId) {
@@ -1330,17 +1355,30 @@ async function enterHumanMode() {
 
 addDatoRow();  // start with one Dato row
 
-const recordsView = createResultsView(
-    $('r-results'), fichaCard, (r) => r.fichaId, {onExport: exportFichas});
+// One results view, reconfigured per search type via use(PROFILE). Records and
+// advanced share the ficha profile; copies has its own card + export flow. Both
+// profiles reset the copies-only UI (group tabs + download links) on activate;
+// copies then repopulates the groups, fichas leave them hidden.
+function resetCopiesUI() {
+  $('c-groups').hidden = true;
+  $('c-groups').replaceChildren();
+  $('c-downloads').replaceChildren();
+}
+
+const FICHA_PROFILE = {
+  renderCard: fichaCard, getId: (r) => r.fichaId, onExport: exportFichas,
+  exportFormats: ['xlsx', 'pdf'], maxExport: MAX_EXPORT, images: true,
+  onActivate: resetCopiesUI,
+};
+const COPIES_PROFILE = {
+  renderCard: ejemplarCard, getId: (r) => r.i_id, onExport: exportCopies,
+  exportFormats: ['pdf', 'xlsx'], maxExport: MAX_EXPORT_COPIES, images: false,
+  onActivate: resetCopiesUI,
+};
+
+const resultsView = createResultsView($('results'));
 updateRecordsControls();
-
-const advancedView = createResultsView(
-    $('a-results'), fichaCard, (r) => r.fichaId, {onExport: exportFichas});
 updateAdvancedControls();
-
-const copiesView = createResultsView(
-    $('c-results'), ejemplarCard, (r) => r.i_id,
-    {onExport: exportCopies, exportFormats: ['pdf', 'xlsx'], maxExport: MAX_EXPORT_COPIES});
 updateCopiesControls();
 
 $('start').addEventListener('click', start);
@@ -1350,18 +1388,12 @@ $('r-all-server').addEventListener('click', recordsAllServer);
 $('r-all-client').addEventListener('click', recordsAllClient);
 $('r-next').addEventListener('click', recordsNextPage);
 $('r-stop').addEventListener('click', () => { recordsStop = true; });
-$('r-autoimg').addEventListener('change', (e) => {
-  recordsView.setAutoLoad(e.target.checked);
-});
 $('a-add').addEventListener('click', addDatoRow);
 $('a-search').addEventListener('click', advancedSearch);
 $('a-all-server').addEventListener('click', advancedAllServer);
 $('a-all-client').addEventListener('click', advancedAllClient);
 $('a-next').addEventListener('click', advancedNextPage);
 $('a-stop').addEventListener('click', () => { advancedStop = true; });
-$('a-autoimg').addEventListener('change', (e) => {
-  advancedView.setAutoLoad(e.target.checked);
-});
 $('h-areas').addEventListener(
     'click', () => runHelper(`${API}/advanced/areas`, 'h-areas-out'));
 $('h-gacetas').addEventListener('click', () => {
@@ -1377,11 +1409,18 @@ $('h-secciones').addEventListener('click', () => {
 
 $('mode-toggle').addEventListener('change', (e) => {
   applyMode(e.target.checked);
-  updateRecordsVisibility();
+  // Switching surfaces (log ⇄ table) starts clean: drop the table, the log, and
+  // any in-flight paging state so a stale cursor / Next page can't linger.
+  resultsView.clear();
+  resetCopiesUI();
+  $('json-output').innerHTML = '';
+  recordsQuery = recordsCursor = null;
+  advancedBody = advancedCursor = null;
+  setRecordsFetchStatus('');
+  setAdvancedFetchStatus('');
+  setCopiesFetchStatus('');
   updateRecordsControls();
-  updateAdvancedVisibility();
   updateAdvancedControls();
-  updateCopiesVisibility();
   updateCopiesControls();
   if (e.target.checked) runCascade(enterHumanMode);
 });
